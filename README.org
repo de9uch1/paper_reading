@@ -1,0 +1,7 @@
+* Compilation
+#+BEGIN_SRC
+$ cd 20200305_nat_crf_transformer/
+$ emacs README.org --batch -f org-beamer-export-to-latex --kill
+$ latexmk; latexmk -c
+#+END_SRC
+
