@@ -1,0 +1,193 @@
+# Copyright (c) Hiroyuki Deguchi.
+#
+# This source code is licensed under the MIT license found in the
+# LICENSE file in the root directory of this source tree.
+
+#+OPTIONS: toc:nil
+
+#+TITLE: Fast Structured Decoding @@latex:\\@@ for Sequence Models
+#+BEAMER_HEADER: \subtitle{(Sun et al., NeurIPS 2019)}
+#+AUTHOR: 愛媛大 M1 出口 祥之 @@latex:\\ \small{e-mail: <\texttt{deguchi@ai.cs.ehime-u.ac.jp}>}@@
+#+DATE: 第 1 回 NAT 勉強会: 2020/03/05
+# #+BEAMER_HEADER: \institute{Department of Computer Science Johns Hopkins University}
+#+STARTUP: beamer
+#+LATEX_CLASS: beamer
+#+LATEX_CLASS_OPTIONS: [unicode, 12pt, aspectratio=43]
+
+#+LATEX_HEADER: \usetheme{Madrid}
+#+LATEX_HEADER: \usefonttheme{professionalfonts}
+#+LATEX_HEADER: \usepackage[T1]{fontenc}
+
+#+LATEX_HEADER: \usepackage[sort, compress]{natbib}
+#+LATEX_HEADER: \let\realcitep\citep \renewcommand*{\citep}[1]{{\footnotesize\realcitep{#1}}}
+#+LATEX_HEADER: \usepackage{url}
+
+#+LATEX_HEADER: \setbeamertemplate{footline}{ \hfill \usebeamercolor[fg]{page number in head/foot} \usebeamerfont{page number in head/foot} \insertframenumber\kern1em\vskip2pt }
+#+LATEX_HEADER: \setbeamertemplate{itemize item}{\small\raise0.5pt\hbox{$\bullet$}}
+#+LATEX_HEADER: \setbeamertemplate{itemize subitem}{\tiny\raise1.5pt\hbox{$\blacktriangleright$}}
+#+LATEX_HEADER: \setbeamertemplate{navigation symbols}{}
+#+LATEX_HEADER: \usepackage{xltxtra}
+
+#+LATEX_HEADER: \usepackage{pgfpages}
+# #+LATEX_HEADER: \setbeameroption{show notes on second screen=right}
+
+#+LATEX_HEADER: \XeTeXlinebreaklocale "ja"
+#+LATEX_HEADER: \setsansfont{Noto Sans CJK JP}
+
+* Links
+- Fast Structured Decoding for Sequence Models (Sun et al, NeurIPS 2019)
+  - [[https://papers.nips.cc/paper/8566-fast-structured-decoding-for-sequence-models][\url{https://papers.nips.cc/paper/8566-fast-structured-decoding-for-sequence-models}]]
+
+- ソースコード (Fairseq)
+  - [[https://github.com/pytorch/fairseq/blob/master/fairseq/models/nat/nat_crf_transformer.py][\url{nat_crf_transformer.py}]]
+  - [[https://github.com/pytorch/fairseq/blob/master/fairseq/modules/dynamic_crf_layer.py][\url{dynamic_crf_layer.py}]]
+
+* Introduction
+- 従来の Non-Autoregressive Transformer (NAT) は出力単語同士において条件付き独立を仮定
+  - 単語の共起性などをうまく考慮できず, 生成文の一貫性を犠牲にする
+
+- linear-chain Conditional Random Fields (CRF) レイヤを導入することで隣り合った単語間の共起性を考慮
+  - 後述する低ランク近似とビーム近似により, 語彙数 $|\mathcal{V}|$ 依存の巨大な計算量 $O(|\mathcal{V}|^2)$ を抑える
+  - 提案手法 Dynamic CRF transition により性能改善
+
+* \normalsize Transformer-based Non-autoregressive Translation Model
+:PROPERTIES:
+:BEAMER_OPT: containsverbatim
+:END:
+
+*** NART
+:PROPERTIES:
+:BEAMER_COL: 0.6
+:END:
+
+- (Gu+, 2017) モデルをベースにした翻訳モデル : NART
+- デコーダの入力をシンプルに設計
+  - fertility による単語コピーを行わない
+  - \verb|<pad>| 系列の末尾に \verb|<eos>| を付加した系列を用いる
+    - 訓練時は目的言語文の文長個
+    - 推論時は後述
+  - 入力がとてもシンプルだが, 実験ではうまく機能する
+
+*** モデル図
+:PROPERTIES:
+:BEAMER_COL: 0.4
+:END:
+
+#+ATTR_LATEX: :width 1.0\linewidth
+[[./figure/Figure1_b.pdf]]
+
+* Conditional random field
+- Non-Autoregressive なモデルのマルチモダリティ問題を構造化推論モジュールにより対処
+  - 出力単語をラベルとした系列ラベリング問題と見なし, CRF を用いる
+\begin{equation*}
+    P(y|x) = \frac{1}{Z(x)} \mathrm{exp}(\sum_{i=1}^n s(y_i, x, i) + \sum_{i=2}^n t(y_{i-1}, y_i, x, i))
+\end{equation*}
+
+#+ATTR_LATEX: :width 0.9\linewidth
+[[./figure/Figure2.pdf]]
+
+* Incorporating CRF into NART model
+\begin{equation*}
+    P(y|x) = \frac{1}{Z(x)} \mathrm{exp}(\sum_{i=1}^n s(y_i, x, i) + \sum_{i=2}^n t(y_{i-1}, y_i, x, i))
+\end{equation*}
+
+- CRF をそのままモデルに適用すると遷移行列のサイズが $|\mathcal{V}| \times |\mathcal{V}|$ になる
+  - 語彙数 32k のとき, 32k^2 = 1.024B となり, 実用不可
+  - 低ランク近似とビーム近似により解決
+
+* \large Low-rank approximation for transition matrix
+- 遷移行列 $M$ を低ランクな行列の積で表現
+
+\begin{align*}
+    M &= E_1 E_2^\top & \mathrm{where} & E_1, E_2 \in \mathbb{R}^{|\mathcal{V}|\times d_t}
+\end{align*}
+- 分配関数 $Z(x)$ ・ビタビ復号以外の計算効率化
+
+* Beam approximation for CRF
+- 分配関数 $Z(x)$ ・ビタビ復号時の計算に使用
+- 各位置でk-bestを求める
+  - 分配関数 $Z(x)$ に正解文の系列を含ませて計算
+- k-best遷移行列を用いて計算( $|\mathcal{V}|\times|\mathcal{V}| \rightarrow k \times k$ )
+
+- 低ランク近似とビーム近似によりCRFの計算量は $O(|\mathcal{V}|^2) \rightarrow O(nk^2)$
+
+* Dynamic CRF transition
+- 遷移行列 $M$ は一系列に対して固定
+- 位置 $i$ ごとに変化する動的な遷移行列 $M^i$ を定義
+\begin{align*}
+    M_{dynamic}^{i} = f([h_{i-1}, h_i]) \\
+    M^i = E_1 M_{dynamic}^i E_2^\top \\
+    t(y_{i-1}, y_i, x, i) = M_{y_{i-1}, y_i}^i
+\end{align*}
+※ $f: \mathbb{R}^{2d_{model}} \rightarrow \mathbb{R}^{d_t \times d_t}$ は2層のFeed Forward Network
+
+* \large Joint training with vanilla non-autoregressive loss
+- モデル学習を効率的に行うため, 目的関数 $\mathcal{L}$ はCRFの出力のNLL損失( $\mathcal{L}_{CRF}$ )とNARTのNLL損失( $\mathcal{L}_{NAR}$ )の荷重和とする
+
+\begin{equation*}
+    \mathcal{L} = \mathcal{L}_{CRF} + \lambda \mathcal{L}_{NAR}
+\end{equation*}
+※ $\lambda$ は損失の重みをコントロールするハイパーパラメータ
+
+* Inference
+** 目的言語文の文長 $T^\prime$
+   - 訓練時 :: 正解文長を使用
+   - 推論時 :: ソース文長 $T$ から決定: $T^\prime = T+C$
+- $C$ は訓練データの文長の統計情報により決定される定数
+  - 言語ごとの文の平均長によって決定
+
+** 推論時の rescoreing
+- $[(T+C)-B, (T+C) + B]$ の範囲で異なるターゲット文長の翻訳候補を生成
+  - $B$ は 4 or 9 に設定 $\rightarrow$ 候補の数は 9 or 19 個
+- Autoregressive な Transformer を教師モデルとして最適な翻訳を選択
+
+* Experiments
+- データセット : WMT14 En-De/De-En, IWSLT14 De-En
+- 低ランク近似の遷移行列の埋め込み次元 : $d_t = 32$
+- ビーム近似のビーム幅 : $k = 64$
+- 目的関数 $\mathcal{L} = \mathcal{L}_{CRF} + \lambda \mathcal{L}_{NAR}$ : $\lambda = 0.5$
+
+* Results
+*** 
+:PROPERTIES:
+:BEAMER_COL: 0.35
+:END:
+
+\fontsize{9.5pt}{0pt}
+- 既存の Non-autoregressive モデルより大幅に性能改善
+- WMTのEn-Deにおいて, 強力なAutoregressiveモデル(LSTM-base, CNN-base)よりも優れた性能
+- ARTとNARTの性能差(BLEU)を0.61まで縮めた
+- latencyについて, NART-CRF/DCRFは, rescoreringなしで 11.1/10.4, rescoreringありでも4.45/4.39  倍の速度向上
+
+
+*** 
+:PROPERTIES:
+:BEAMER_COL: 0.65
+:END:
+
+#+ATTR_LATEX: :width 1.0\linewidth
+[[./figure/Table2.pdf]]
+
+* Analysis
+- Dynamic CRFの効果は, En-Deでは小さく, De-Enで大きい
+  - 言語間の特性が原因
+- ビーム近似の有効性
+  - 完全な遷移行列にどれほど適合するか？
+  - ビーム近似のビーム幅を64, 評価時のビーム幅 $k$ を変えて実験
+    - $k = 16$ 以降の上がり幅は小さい
+    - 訓練時のビーム幅よりも小さい $k = 16$ の時点ですでに良く近似できている
+
+* Conclusion and Future Work
+\footnotesize
+
+Conclusion
+- Non-autoregressive なモデルのマルチモダリティ問題を解決するため, linear-chain CRFを導入し, 単語間の共起関係を扱えるようにした
+- 計算量が語彙数に依存しない, 低ランク近似, ビーム近似を提案
+- 位置毎のコンテキストをモデル化するDynamic CRFを提案
+
+Future Work
+- Autoregressiveモデルとのギャップを埋める
+- rescoring の処理によってlatencyが増加している
+  - 目的言語文の文長を予測するモジュールが役立つかもしれない
+#+ATTR_LATEX: :width 0.8\linewidth
+[[./figure/Table2_art_nart.pdf]]
