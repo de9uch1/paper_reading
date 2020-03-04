@@ -1,4 +1,4 @@
-% Created 2020-03-03 Tue 20:53
+% Created 2020-03-04 Wed 15:19
 % Intended LaTeX compiler: pdflatex
 \documentclass[unicode, 12pt, aspectratio=43]{beamer}
 \usepackage[utf8]{inputenc}
@@ -44,7 +44,7 @@
 
 \maketitle
 
-\begin{frame}[label={sec:org085a8f9}]{Links}
+\begin{frame}[label={sec:orgfba643f}]{Links}
 \begin{itemize}
 \item Fast Structured Decoding for Sequence Models (Sun et al, NeurIPS 2019)
 \begin{itemize}
@@ -59,7 +59,7 @@
 \end{itemize}
 \end{frame}
 
-\begin{frame}[label={sec:orgd29b1cc}]{Introduction}
+\begin{frame}[label={sec:orgd409ac1}]{Introduction}
 \begin{itemize}
 \item 従来の Non-Autoregressive Transformer (NAT) は出力単語同士において条件付き独立を仮定
 \begin{itemize}
@@ -68,13 +68,13 @@
 
 \item linear-chain Conditional Random Fields (CRF) レイヤを導入することで隣り合った単語間の共起性を考慮
 \begin{itemize}
-\item 後述する低ランク近似とビーム近似により, 語彙数 \(|\mathcal{V}|\) 依存の巨大な計算量 \(O(|\mathcal{V}|^2)\) を抑える
+\item 後述する低ランク近似とビーム近似により, 語彙数 \(|\mathcal{V}|\) 依存の巨大な計算量 \(O(n|\mathcal{V}|^2)\) を抑える
 \item 提案手法 Dynamic CRF transition により性能改善
 \end{itemize}
 \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim,label={sec:orgabf90fa}]{\normalsize Transformer-based Non-autoregressive Translation Model}
+\begin{frame}[containsverbatim,label={sec:orga17dc53}]{\normalsize Transformer-based Non-autoregressive Translation Model}
 \begin{columns}
 \begin{column}{0.6\columnwidth}
 \begin{itemize}
@@ -100,7 +100,7 @@
 \end{columns}
 \end{frame}
 
-\begin{frame}[label={sec:orge07e6cc}]{Conditional random field}
+\begin{frame}[label={sec:org2fd096c}]{Conditional random field}
 \begin{itemize}
 \item Non-Autoregressive なモデルのマルチモダリティ問題を構造化推論モジュールにより対処
 \begin{itemize}
@@ -116,7 +116,7 @@
 \end{center}
 \end{frame}
 
-\begin{frame}[label={sec:orgc4097bb}]{Incorporating CRF into NART model}
+\begin{frame}[label={sec:orgd95a57d}]{Incorporating CRF into NART model}
 \begin{equation*}
     P(y|x) = \frac{1}{Z(x)} \mathrm{exp}(\sum_{i=1}^n s(y_i, x, i) + \sum_{i=2}^n t(y_{i-1}, y_i, x, i))
 \end{equation*}
@@ -130,7 +130,7 @@
 \end{itemize}
 \end{frame}
 
-\begin{frame}[label={sec:org5835aa8}]{\large Low-rank approximation for transition matrix}
+\begin{frame}[label={sec:org3df3d15}]{\large Low-rank approximation for transition matrix}
 \begin{itemize}
 \item 遷移行列 \(M\) を低ランクな行列の積で表現
 \end{itemize}
@@ -143,7 +143,7 @@
 \end{itemize}
 \end{frame}
 
-\begin{frame}[label={sec:org4efdd26}]{Beam approximation for CRF}
+\begin{frame}[label={sec:orgf891c50}]{Beam approximation for CRF}
 \begin{itemize}
 \item 分配関数 \(Z(x)\) ・ビタビ復号時の計算に使用
 \item 各位置でk-bestを求める
@@ -151,12 +151,11 @@
 \item 分配関数 \(Z(x)\) に正解文の系列を含ませて計算
 \end{itemize}
 \item k-best遷移行列を用いて計算( \(|\mathcal{V}|\times|\mathcal{V}| \rightarrow k \times k\) )
-
-\item 低ランク近似とビーム近似によりCRFの計算量は \(O(|\mathcal{V}|^2) \rightarrow O(nk^2)\)
+\item 低ランク近似とビーム近似によりCRFの計算量は \(O(n|\mathcal{V}|^2) \rightarrow O(nk^2)\)
 \end{itemize}
 \end{frame}
 
-\begin{frame}[label={sec:org7c3a053}]{Dynamic CRF transition}
+\begin{frame}[label={sec:org45b54b5}]{Dynamic CRF transition}
 \begin{itemize}
 \item 遷移行列 \(M\) は一系列に対して固定
 \item 位置 \(i\) ごとに変化する動的な遷移行列 \(M^i\) を定義
@@ -169,7 +168,7 @@
 ※ \(f: \mathbb{R}^{2d_{model}} \rightarrow \mathbb{R}^{d_t \times d_t}\) は2層のFeed Forward Network
 \end{frame}
 
-\begin{frame}[label={sec:org3c9983c}]{\large Joint training with vanilla non-autoregressive loss}
+\begin{frame}[label={sec:org63ae06b}]{\large Joint training with vanilla non-autoregressive loss}
 \begin{itemize}
 \item モデル学習を効率的に行うため, 目的関数 \(\mathcal{L}\) はCRFの出力のNLL損失( \(\mathcal{L}_{CRF}\) )とNARTのNLL損失( \(\mathcal{L}_{NAR}\) )の荷重和とする
 \end{itemize}
@@ -180,7 +179,7 @@
 ※ \(\lambda\) は損失の重みをコントロールするハイパーパラメータ
 \end{frame}
 
-\begin{frame}[label={sec:org88f175b}]{Inference}
+\begin{frame}[label={sec:orgb83db11}]{Inference}
 \begin{block}{目的言語文の文長 \(T^\prime\)}
 \begin{description}
 \item[{訓練時}] 正解文長を使用
@@ -194,7 +193,7 @@
 \end{itemize}
 \end{block}
 
-\begin{block}{推論時の rescoreing}
+\begin{block}{推論時の rescoring}
 \begin{itemize}
 \item \([(T+C)-B, (T+C) + B]\) の範囲で異なるターゲット文長の翻訳候補を生成
 \begin{itemize}
@@ -205,7 +204,7 @@
 \end{block}
 \end{frame}
 
-\begin{frame}[label={sec:org09bcb0f}]{Experiments}
+\begin{frame}[label={sec:org4803543}]{Experiments}
 \begin{itemize}
 \item データセット : WMT14 En-De/De-En, IWSLT14 De-En
 \item 低ランク近似の遷移行列の埋め込み次元 : \(d_t = 32\)
@@ -214,7 +213,7 @@
 \end{itemize}
 \end{frame}
 
-\begin{frame}[label={sec:org77f7469}]{Results}
+\begin{frame}[label={sec:orgc1d6b4a}]{Results}
 \begin{columns}
 \begin{column}{0.35\columnwidth}
 \fontsize{9.5pt}{0pt}
@@ -222,7 +221,7 @@
 \item 既存の Non-autoregressive モデルより大幅に性能改善
 \item WMTのEn-Deにおいて, 強力なAutoregressiveモデル(LSTM-base, CNN-base)よりも優れた性能
 \item ARTとNARTの性能差(BLEU)を0.61まで縮めた
-\item latencyについて, NART-CRF/DCRFは, rescoreringなしで 11.1/10.4, rescoreringありでも4.45/4.39  倍の速度向上
+\item latencyについて, NART-CRF/DCRFは, rescoringなしで 11.1/10.4, rescoringありでも4.45/4.39  倍の速度向上
 \end{itemize}
 \end{column}
 
@@ -235,7 +234,7 @@
 \end{columns}
 \end{frame}
 
-\begin{frame}[label={sec:orgadd54d4}]{Analysis}
+\begin{frame}[label={sec:org2e78dac}]{Analysis}
 \begin{itemize}
 \item Dynamic CRFの効果は, En-Deでは小さく, De-Enで大きい
 \begin{itemize}
@@ -253,7 +252,7 @@
 \end{itemize}
 \end{frame}
 
-\begin{frame}[label={sec:org549a0e8}]{Conclusion and Future Work}
+\begin{frame}[label={sec:orgadec039}]{Conclusion and Future Work}
 \footnotesize
 
 Conclusion

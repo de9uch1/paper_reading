@@ -47,7 +47,7 @@
   - 単語の共起性などをうまく考慮できず, 生成文の一貫性を犠牲にする
 
 - linear-chain Conditional Random Fields (CRF) レイヤを導入することで隣り合った単語間の共起性を考慮
-  - 後述する低ランク近似とビーム近似により, 語彙数 $|\mathcal{V}|$ 依存の巨大な計算量 $O(|\mathcal{V}|^2)$ を抑える
+  - 後述する低ランク近似とビーム近似により, 語彙数 $|\mathcal{V}|$ 依存の巨大な計算量 $O(n|\mathcal{V}|^2)$ を抑える
   - 提案手法 Dynamic CRF transition により性能改善
 
 * \normalsize Transformer-based Non-autoregressive Translation Model
@@ -108,8 +108,7 @@
 - 各位置でk-bestを求める
   - 分配関数 $Z(x)$ に正解文の系列を含ませて計算
 - k-best遷移行列を用いて計算( $|\mathcal{V}|\times|\mathcal{V}| \rightarrow k \times k$ )
-
-- 低ランク近似とビーム近似によりCRFの計算量は $O(|\mathcal{V}|^2) \rightarrow O(nk^2)$
+- 低ランク近似とビーム近似によりCRFの計算量は $O(n|\mathcal{V}|^2) \rightarrow O(nk^2)$
 
 * Dynamic CRF transition
 - 遷移行列 $M$ は一系列に対して固定
@@ -136,7 +135,7 @@
 - $C$ は訓練データの文長の統計情報により決定される定数
   - 言語ごとの文の平均長によって決定
 
-** 推論時の rescoreing
+** 推論時の rescoring
 - $[(T+C)-B, (T+C) + B]$ の範囲で異なるターゲット文長の翻訳候補を生成
   - $B$ は 4 or 9 に設定 $\rightarrow$ 候補の数は 9 or 19 個
 - Autoregressive な Transformer を教師モデルとして最適な翻訳を選択
@@ -157,7 +156,7 @@
 - 既存の Non-autoregressive モデルより大幅に性能改善
 - WMTのEn-Deにおいて, 強力なAutoregressiveモデル(LSTM-base, CNN-base)よりも優れた性能
 - ARTとNARTの性能差(BLEU)を0.61まで縮めた
-- latencyについて, NART-CRF/DCRFは, rescoreringなしで 11.1/10.4, rescoreringありでも4.45/4.39  倍の速度向上
+- latencyについて, NART-CRF/DCRFは, rescoringなしで 11.1/10.4, rescoringありでも4.45/4.39  倍の速度向上
 
 
 *** 
