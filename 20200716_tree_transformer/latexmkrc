@@ -1,0 +1,4 @@
+$latex = 'xelatex %S';
+$bibtex = 'bibtex';
+$pdf_mode = 0;
+$clean_ext = "synctex.gz nav snm thm soc loc glg acn aux";
