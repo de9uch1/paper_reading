@@ -1,0 +1,254 @@
+# Copyright (c) Hiroyuki Deguchi.
+#
+# This source code is licensed under the MIT license found in the
+# LICENSE file in the root directory of this source tree.
+
+#+OPTIONS: toc:nil
+
+#+TITLE: Dynamic Programming Encoding for Subword Segmentation in Neural Machine Translation
+#+BEAMER_HEADER: \subtitle{(He et al., ACL 2020)}
+#+AUTHOR: 出口 祥之 @@latex:\\ \lower2.0pt\hbox{\materials} \texttt{deguchi@ai.cs.ehime-u.ac.jp}@@
+#+DATE: 2020/07/30 二宮研 論文輪読会
+#+BEAMER_HEADER: \institute{}
+#+STARTUP: beamer
+#+LATEX_CLASS: beamer
+#+LATEX_CLASS_OPTIONS: [unicode, 12pt, aspectratio=43]
+
+#+LATEX_HEADER: \usepackage[backend=bibtex, style=authortitle]{biblatex}
+#+LATEX_HEADER: \AtEveryCitekey{\iffootnote{\tiny\reffont}{\color{blue}}}
+#+LATEX_HEADER: \addbibresource{../resources/anthology.bib}
+#+LATEX_HEADER: \addbibresource{../resources/my.bib}
+#+LATEX_HEADER: \usepackage{url}
+
+#+LATEX_HEADER: \usetheme{metropolis}
+#+LATEX_HEADER: \setbeamertemplate{footline}{ \hfill \usebeamercolor[fg]{page number in head/foot} \usebeamerfont{page number in head/foot} \insertframenumber\kern1em\vskip2pt }
+#+LATEX_HEADER: \setbeamertemplate{items}[default]
+#+LATEX_HEADER: \setbeamertemplate{itemize item}{\small\raise0.5pt\hbox{$\blacksquare$}}
+#+LATEX_HEADER: \setbeamertemplate{itemize subitem}{\footnotesize\raise1.5pt\hbox{$\bullet$}}
+#+LATEX_HEADER: \setbeamertemplate{itemize subsubitem}{\scriptsize\raise1.5pt\hbox{$\blacktriangleright$}}
+#+LATEX_HEADER: \setbeamertemplate{navigation symbols}{}
+#+LATEX_HEADER: \usepackage{xltxtra}
+
+#+LATEX_HEADER: \usepackage{booktabs}
+#+LATEX_HEADER: \usepackage[absolute,overlay]{textpos}
+
+#+LATEX_HEADER: \usepackage{pgfpages}
+# #+LATEX_HEADER: \setbeameroption{show notes on second screen=right}
+
+#+LATEX_HEADER: \usefonttheme{professionalfonts}
+#+LATEX_HEADER: \usepackage[T1]{fontenc}
+#+LATEX_HEADER: \usepackage{fontspec}
+#+LATEX_HEADER: \XeTeXlinebreaklocale "ja"
+#+LATEX_HEADER: \setsansfont[AutoFakeSlant=0.2]{Noto Sans CJK JP}
+#+LATEX_HEADER: \setromanfont[AutoFakeSlant=0.2]{Noto Serif CJK JP}
+#+LATEX_HEADER: \newfontfamily\emojifont{Noto Emoji}
+#+LATEX_HEADER: \newfontfamily\octicons{github-octicons}
+#+LATEX_HEADER: \newfontfamily\materials{Material Icons}
+#+LATEX_HEADER: \newfontfamily\reffont{Times New Roman}
+#+LATEX_HEADER: \renewcommand{\baselinestretch}{1.3}
+
+* \hbox{\octicons} Links
+** \raise0.5pt\hbox{\octicons} Paper
+*** https://www.aclweb.org/anthology/D19-1098/
+** \raise0.5pt\hbox{\octicons} Source Code
+*** https://github.com/xlhex/dpe
+
+* Introduction
+** NMT におけるサブワード分割
+- 貪欲法: :: バイトペア符号化 (BPE)\footcite{sennrich-etal-2016-neural}, 最長一致法\footcite{wu-etal-2016-googles}
+- 確率的アルゴリズム: :: ユニグラムLM\footcite{kudo-2018-subword}, BPE-dropout\footcite{provilkov-etal-2020-bpe}
+- \small 原言語側，目的言語側ともに複数分割候補が得られる．訓練時に分割候補を確率的にサンプリングすることでモデルの頑健性向上． \normalsize
+- 動的計画法: :: 提案手法．サブワード分割の周辺化．
+
+* Related Work (Greedy Algorithms)
+** BPE, Wordpiece
+- unconscious $\rightarrow$ un + conscious, likes $\rightarrow$ like + s
+- 隣り合った頻出サブワードから順に，予め指定した語彙数に到達するまで再帰的に結合 (BPE)
+- 語彙数とデコード速度はトレードオフ
+  - (語彙数を小さくするだけであれば文字単位でよい)
+  - テキスト圧縮の技術を利用
+  - 語彙数の上限を制約とし，文長が短くなるような分割を得るアルゴリズム
+
+* Related Work (Stochastic Algorithms)
+** ユニグラムLM, BPE-dropout
+- \footnotesize unconscious $\rightarrow$ {un + concious, uncon + scious}
+- \normalsize 複数分割候補を得られる
+  - ユニグラムLM: 尤度ベースでサンプリング
+  - BPE-dropout: 結合時に確率的に棄却
+  - NMT 訓練時に分割を確率的に得ることでデータ拡張 (Data Augumentation) の効果
+    - モデルの頑健性，汎用化
+
+* \normalsize Related Work (Dynamic Programming Algorithms)
+** 音声認識\footcite{wang-etal-2017-sequence}
+
+** 非自己回帰 NMT モデル\footcite{chan-etal-2020-imputer}\footcite{saharia-etal-2020-nonautoregressive}
+
+* Latent Subword Segmentation - Definitions
+** \hspace{-0.75cm}目的言語側の分割を潜在変数とみなす
+*** 
+:PROPERTIES:
+:BEAMER_COL: 1.0
+:END:
+- $M$ 個のサブワード境界: $\{\boldsymbol{y}_{z_i, z_{i+1}}\}_{i=1}^M$
+  - $\boldsymbol{y} = (y_1, \ldots, y_T)$: 目的言語文の文字列 
+  - $\boldsymbol{z} = (z_1 (=0),\ldots,z_{M+1} (=T))$: 文字インデックス列
+  - $\boldsymbol{y}_{a,b}$: $(a+1)^\text{th}$ から $b^\text{th}$ まで結合したサブワード
+
+*** 
+:PROPERTIES:
+:BEAMER_COL: 0.465
+:END:
+\begin{textblock*}{\linewidth}(220pt, 40pt)
+    \centering
+    \includegraphics[width=\linewidth]{./figure/Figure1.pdf}
+\end{textblock*}
+
+** 例:
+:PROPERTIES:
+:BEAMER_COL: 0.5
+:BEAMER_ENV: block
+:END:
+\footnotesize
+- 辞書 $\mathcal{V} = \{\text{'c', 'a', 't', 'ca', 'at'}\}$
+- 単語: 'cat'
+
+** 
+:PROPERTIES:
+:BEAMER_COL: 0.5
+:END:
+\footnotesize
+
+#+ATTR_LATEX: :booktabs t
+|------------------+-----------------|
+| $\boldsymbol{z}$ | サブワード列    |
+|------------------+-----------------|
+| $(0,1,3)$        | ('c', 'at')     |
+| $(0,2,3)$        | ('ca', 't')     |
+| $(0,1,2,3)$      | ('c', 'a', 't') |
+|------------------+-----------------|
+
+* Latent Subword Segmentation - Likelihood
+** 連鎖律を用いてサブワード列の対数尤度を表現
+- 各サブワードにおいて語彙のカテゴリ分布を生成
+  \begin{equation*}
+    \log p(\boldsymbol{y},\boldsymbol{z} | \boldsymbol{x}) = \sum_{i=1}^{|\boldsymbol{z}|} \log p(\boldsymbol{y}_{z_i, z_{i+1}} | \boldsymbol{y}_{z_1, z_2},\ldots,\boldsymbol{y}_{z_{i-1}, z_i}, \boldsymbol{x})
+  \end{equation*}
+  ※ $\boldsymbol{x}$ : 原言語文
+- 殆どの NMT は $\boldsymbol{z}$ は $\boldsymbol{y}$ の決定論的関数とみなされる: $\log p(\boldsymbol{y}, \boldsymbol{z}) \approx \log p(\boldsymbol{y})$
+
+* \normalsize Latent Subword Segmentation - Latent Variable
+** $\boldsymbol{z} \in \mathcal{Z}_{y} (\boldsymbol{y} \text{の分割集合})$ を潜在表現とみなす
+- $p(\boldsymbol{y} | \boldsymbol{x}) = \sum_{\boldsymbol{z}} p(\boldsymbol{y}, \boldsymbol{z} | \boldsymbol{x})$ とする
+  \begin{equation*}
+    \small \log p(\boldsymbol{y} | \boldsymbol{x}) = \log\sum_{\boldsymbol{z}\in\mathcal{Z}_y}\exp\sum_{i=1}^{|\boldsymbol{z}|} \log p(\boldsymbol{y}_{z_i, z_{i+1}} | \boldsymbol{y}_{z_1, z_2},\ldots,\boldsymbol{y}_{z_{i-1}, z_i}, \boldsymbol{x})
+  \end{equation*}
+  ※ 対数周辺尤度の下限: $\log p(\boldsymbol{y} | \boldsymbol{x}) \ge \log p(\boldsymbol{y}, \boldsymbol{z} | \boldsymbol{x})$
+
+- 各サブワードの確率が条件部のコンテキストの分割に依存するため，巨大な空間 $\mathcal{Z}_y$ 上での厳密な周辺化は組み合わせ爆発を起こす
+
+* A Mixed Character-Subword Transformer
+** 文字に基づいてサブワードを生成する Transformer
+- 条件部のコンテキストを文字のみに
+  \begin{equation*}
+    \log p(\boldsymbol{y}, \boldsymbol{z} | \boldsymbol{x}) = \sum_{i=1}^{|\boldsymbol{z}|} \log p(\boldsymbol{y}_{z_i, z_{i+1}} | y_{z_1}, \ldots, y_{z_i}, \boldsymbol{x})
+  \end{equation*}
+
+- $\boldsymbol{y}$ の各文字位置 $t$ において，次に来るサブワード $w \in \mathcal{V}$ の分布を以下に基づいて生成
+  \begin{equation*}
+    p(w | y_{1}, \ldots, y_{t}, \boldsymbol{x}) = \frac{\exp(f(y_1,\ldots,y_t)^\top e(w))}{\sum_{w' \in \mathcal{V}}\exp(f(y_1,\ldots,y_t)^\top e(w'))}
+  \end{equation*}
+  - \vspace{-0.5cm} $f(\cdot)$ : Transformer により条件部の計算
+  - $e(\cdot)$ : ソフトマックス層の重み
+
+* A Mixed Character-Subword Transformer
+** $t$ ステップ目のモデル出力
+:PROPERTIES:
+:BEAMER_COL: 0.65
+:BEAMER_ENV: block
+:END:
+1. $t$ ステップ目でサブワード $w$ を生成
+2. サブワード $w$ の文字をデコーダに入力 ( $t+1$ から $t+|w|$ まで )
+3. $t+|w|$ ステップ目で次のサブワードを生成
+
+** 
+:PROPERTIES:
+:BEAMER_COL: 0.35
+:END:
+#+ATTR_LATEX: :width \linewidth
+[[./figure/Figure2.pdf]]
+
+* Optimization
+** 目的関数 $\mathcal{L}(\theta)$ を最大化
+  \begin{equation*}
+    \mathcal{L}(\theta) = \sum_{(\boldsymbol{x}, \boldsymbol{y}) \in \mathcal{D}} \log P(\boldsymbol{y} | \boldsymbol{x})
+  \end{equation*}
+  - 周辺化と対数周辺尤度の勾配計算が必要
+
+* Exact Maginalization
+** 動的計画法を用いて周辺尤度を計算
+- サブワードの出力確率が文字のみによって得られるため動的計画法によって対数周辺尤度が計算可能
+#+ATTR_LATEX: :width \linewidth
+[[./figure/Algorithm1.pdf]]
+- 計算量:  $\mathcal{O}(mT)$
+  - $m$ : 語彙に含まれる最長の単語の文字数
+
+* Gradient Computation
+** 計算量増加への対処
+- PyTorch での著者実装で通常の Transformer デコーダより 8 倍遅く，メモリ使用量も増加
+  - DP アルゴリズムと文字レベルでの演算による系列長の増加が原因
+- Transformer のレイヤ数を 6 から 4 に減らし，16 ステップ勾配蓄積 (Gradient Accumulattion) してからパラメタ更新
+
+* Segmenting Target Sentences
+** Dynamic Programming Encoding (DPE): 最大事後確率を持つ目的言語文の分割を探索
+#+ATTR_LATEX: :width \linewidth
+[[./figure/Algorithm2.pdf]]
+
+* Segmenting Target Sentences
+- 混合文字サブワード Transformer は訓練データの目的言語文の分割のためのみに使用
+- 分割した文で通常のサブワード Transformer を訓練
+#+ATTR_LATEX: :width 0.5\linewidth
+[[./figure/Figure3.pdf]]
+
+* Experiments
+- データセット :: WMT09 En-Hu, WMT14 En-De, WMT15 En-Fi, WMT16 En-Ro, WMT18 En-Et
+- モデル ::
+#+ATTR_LATEX: :booktabs t
+|-------------------+------------------------|
+| アーキテクチャ    | Transformer base       |
+| 分割 (原言語側)   | BPE-dropout $(p=0.05)$ |
+| 　　 (目的言語側) | DPE                    |
+|-------------------+------------------------|
+
+* Main Results
+#+ATTR_LATEX: :width \linewidth
+[[./figure/Table2.pdf]]
+
+* Segmentation Examples
+#+ATTR_LATEX: :width \linewidth
+[[./figure/Table3.pdf]]
+- 他の例は論文参照
+
+* Conditional Subword Segmentation
+** 原言語文を条件部に入れず，LM で分割
+#+ATTR_LATEX: :width 0.4\linewidth
+[[./figure/Table5.pdf]]
+
+** 同一の目的言語文で原言語側を変えて違いを比較
+#+ATTR_LATEX: :width 0.45\linewidth
+[[./figure/Figure4.pdf]]
+
+* Conditional Subword Segmentation
+** \small 原言語文が BPE-dropout によって変化することの有効性
+#+ATTR_LATEX: :width 0.5\linewidth
+[[./figure/Table6.pdf]]
+
+* DPE vs BPE
+** 目的言語側の分割アルゴリズムを変えて比較
+#+ATTR_LATEX: :width 0.5\linewidth
+[[./figure/Table7.pdf]]
+
+* Conclusion
+- \textbf{Dynamic Programming Encoding} を提案
+  - 訓練時は目的言語側の分割を潜在変数とみなして周辺化
+  - 推論時は事後確率が最も高くなる分割を出力
+- BPE だけでなく BPE-dropout と比較しても翻訳性能が向上
