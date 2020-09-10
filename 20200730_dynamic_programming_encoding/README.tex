@@ -1,4 +1,4 @@
-% Created 2020-07-30 Thu 12:38
+% Created 2020-09-10 Thu 17:06
 % Intended LaTeX compiler: pdflatex
 \documentclass[unicode, 12pt, aspectratio=43]{beamer}
 \usepackage[utf8]{inputenc}
@@ -52,15 +52,15 @@
  pdftitle={Dynamic Programming Encoding for Subword Segmentation in Neural Machine Translation},
  pdfkeywords={},
  pdfsubject={},
- pdfcreator={Emacs 26.3 (Org mode 9.1.9)}, 
+ pdfcreator={Emacs 27.1 (Org mode 9.3.7)}, 
  pdflang={English}}
 \begin{document}
 
 \maketitle
 
-\begin{frame}[label={sec:org921bd3a}]{\hbox{\octicons} Links}
+\begin{frame}[label={sec:org58e037a}]{\hbox{\octicons} Links}
 \begin{block}{\raise0.5pt\hbox{\octicons} Paper}
-\begin{block}{\url{https://www.aclweb.org/anthology/D19-1098/}}
+\begin{block}{\url{https://www.aclweb.org/anthology/2020.acl-main.275/}}
 \end{block}
 \end{block}
 \begin{block}{\raise0.5pt\hbox{\octicons} Source Code}
@@ -69,7 +69,7 @@
 \end{block}
 \end{frame}
 
-\begin{frame}[label={sec:org23571bb}]{Introduction}
+\begin{frame}[label={sec:orgd35ce31}]{Introduction}
 \begin{block}{NMT におけるサブワード分割}
 \begin{description}
 \item[{貪欲法:}] バイトペア符号化 (BPE)\footcite{sennrich-etal-2016-neural}, 最長一致法\footcite{wu-etal-2016-googles}
@@ -80,7 +80,7 @@
 \end{block}
 \end{frame}
 
-\begin{frame}[label={sec:org7be64b4}]{Related Work (Greedy Algorithms)}
+\begin{frame}[label={sec:org2e8f372}]{Related Work (Greedy Algorithms)}
 \begin{block}{BPE, Wordpiece}
 \begin{itemize}
 \item unconscious \(\rightarrow\) un + conscious, likes \(\rightarrow\) like + s
@@ -95,7 +95,7 @@
 \end{block}
 \end{frame}
 
-\begin{frame}[label={sec:org9d527b6}]{Related Work (Stochastic Algorithms)}
+\begin{frame}[label={sec:orgf51776a}]{Related Work (Stochastic Algorithms)}
 \begin{block}{ユニグラムLM, BPE-dropout}
 \begin{itemize}
 \item \footnotesize unconscious \(\rightarrow\) \{un + concious, uncon + scious\}
@@ -112,7 +112,7 @@
 \end{block}
 \end{frame}
 
-\begin{frame}[label={sec:org2ef88b0}]{\normalsize Related Work (Dynamic Programming Algorithms)}
+\begin{frame}[label={sec:orgb050160}]{\normalsize Related Work (Dynamic Programming Algorithms)}
 \begin{block}{音声認識\footcite{wang-etal-2017-sequence}}
 \end{block}
 
@@ -120,7 +120,7 @@
 \end{block}
 \end{frame}
 
-\begin{frame}[label={sec:org652d584}]{Latent Subword Segmentation - Definitions}
+\begin{frame}[label={sec:orgcfeb290}]{Latent Subword Segmentation - Definitions}
 \begin{block}{\hspace{-0.75cm}目的言語側の分割を潜在変数とみなす}
 \begin{columns}
 \begin{column}{1.0\columnwidth}
@@ -172,7 +172,7 @@
 \end{columns}
 \end{frame}
 
-\begin{frame}[label={sec:org1fb4d2c}]{Latent Subword Segmentation - Likelihood}
+\begin{frame}[label={sec:orged48bc1}]{Latent Subword Segmentation - Likelihood}
 \begin{block}{連鎖律を用いてサブワード列の対数尤度を表現}
 \begin{itemize}
 \item 各サブワードにおいて語彙のカテゴリ分布を生成
@@ -185,7 +185,7 @@
 \end{block}
 \end{frame}
 
-\begin{frame}[label={sec:org6f2123a}]{\normalsize Latent Subword Segmentation - Latent Variable}
+\begin{frame}[label={sec:org68c6bda}]{\normalsize Latent Subword Segmentation - Latent Variable}
 \begin{block}{\(\boldsymbol{z} \in \mathcal{Z}_{y} (\boldsymbol{y} \text{の分割集合})\) を潜在表現とみなす}
 \begin{itemize}
 \item \(p(\boldsymbol{y} | \boldsymbol{x}) = \sum_{\boldsymbol{z}} p(\boldsymbol{y}, \boldsymbol{z} | \boldsymbol{x})\) とする
@@ -199,7 +199,7 @@
 \end{block}
 \end{frame}
 
-\begin{frame}[label={sec:org53ff096}]{A Mixed Character-Subword Transformer}
+\begin{frame}[label={sec:org0f3add6}]{A Mixed Character-Subword Transformer}
 \begin{block}{文字に基づいてサブワードを生成する Transformer}
 \begin{itemize}
 \item 条件部のコンテキストを文字のみに
@@ -219,7 +219,7 @@
 \end{block}
 \end{frame}
 
-\begin{frame}[label={sec:org8076e1e}]{A Mixed Character-Subword Transformer}
+\begin{frame}[label={sec:org70502e6}]{A Mixed Character-Subword Transformer}
 \begin{columns}
 \begin{column}{0.65\columnwidth}
 \begin{block}{\(t\) ステップ目のモデル出力}
@@ -239,7 +239,7 @@
 \end{columns}
 \end{frame}
 
-\begin{frame}[label={sec:orgfdbf3ff}]{Optimization}
+\begin{frame}[label={sec:org6b1f2eb}]{Optimization}
 \begin{block}{目的関数 \(\mathcal{L}(\theta)\) を最大化}
 \begin{equation*}
   \mathcal{L}(\theta) = \sum_{(\boldsymbol{x}, \boldsymbol{y}) \in \mathcal{D}} \log P(\boldsymbol{y} | \boldsymbol{x})
@@ -250,7 +250,7 @@
 \end{block}
 \end{frame}
 
-\begin{frame}[label={sec:orgbdc0c95}]{Exact Maginalization}
+\begin{frame}[label={sec:org87578a8}]{Exact Maginalization}
 \begin{block}{動的計画法を用いて周辺尤度を計算}
 \begin{itemize}
 \item サブワードの出力確率が文字のみによって得られるため動的計画法によって対数周辺尤度が計算可能
@@ -267,7 +267,7 @@
 \end{block}
 \end{frame}
 
-\begin{frame}[label={sec:org8b42862}]{Gradient Computation}
+\begin{frame}[label={sec:orgabc43e6}]{Gradient Computation}
 \begin{block}{計算量増加への対処}
 \begin{itemize}
 \item PyTorch での著者実装で通常の Transformer デコーダより 8 倍遅く，メモリ使用量も増加
@@ -279,7 +279,7 @@
 \end{block}
 \end{frame}
 
-\begin{frame}[label={sec:org5832acd}]{Segmenting Target Sentences}
+\begin{frame}[label={sec:orga2672eb}]{Segmenting Target Sentences}
 \begin{block}{Dynamic Programming Encoding (DPE): 最大事後確率を持つ目的言語文の分割を探索}
 \begin{center}
 \includegraphics[width=\linewidth]{./figure/Algorithm2.pdf}
@@ -287,7 +287,7 @@
 \end{block}
 \end{frame}
 
-\begin{frame}[label={sec:org3c115c0}]{Segmenting Target Sentences}
+\begin{frame}[label={sec:org9b9b696}]{Segmenting Target Sentences}
 \begin{itemize}
 \item 混合文字サブワード Transformer は訓練データの目的言語文の分割のためのみに使用
 \item 分割した文で通常のサブワード Transformer を訓練
@@ -297,7 +297,7 @@
 \end{center}
 \end{frame}
 
-\begin{frame}[label={sec:org02e4ae6}]{Experiments}
+\begin{frame}[label={sec:orgca68eed}]{Experiments}
 \begin{description}
 \item[{データセット}] WMT09 En-Hu, WMT14 En-De, WMT15 En-Fi, WMT16 En-Ro, WMT18 En-Et
 \item[{モデル}] 
@@ -313,13 +313,13 @@
 \end{center}
 \end{frame}
 
-\begin{frame}[label={sec:org48400e6}]{Main Results}
+\begin{frame}[label={sec:orgeacdf02}]{Main Results}
 \begin{center}
 \includegraphics[width=\linewidth]{./figure/Table2.pdf}
 \end{center}
 \end{frame}
 
-\begin{frame}[label={sec:orgc743663}]{Segmentation Examples}
+\begin{frame}[label={sec:org84c2519}]{Segmentation Examples}
 \begin{center}
 \includegraphics[width=\linewidth]{./figure/Table3.pdf}
 \end{center}
@@ -328,7 +328,7 @@
 \end{itemize}
 \end{frame}
 
-\begin{frame}[label={sec:org15c0128}]{Conditional Subword Segmentation}
+\begin{frame}[label={sec:org5758021}]{Conditional Subword Segmentation}
 \begin{block}{原言語文を条件部に入れず，LM で分割}
 \begin{center}
 \includegraphics[width=0.4\linewidth]{./figure/Table5.pdf}
@@ -342,7 +342,7 @@
 \end{block}
 \end{frame}
 
-\begin{frame}[label={sec:org8803bfb}]{Conditional Subword Segmentation}
+\begin{frame}[label={sec:orge9c4dc3}]{Conditional Subword Segmentation}
 \begin{block}{\small 原言語文が BPE-dropout によって変化することの有効性}
 \begin{center}
 \includegraphics[width=0.5\linewidth]{./figure/Table6.pdf}
@@ -350,7 +350,7 @@
 \end{block}
 \end{frame}
 
-\begin{frame}[label={sec:org88a6c66}]{DPE vs BPE}
+\begin{frame}[label={sec:org8b33e17}]{DPE vs BPE}
 \begin{block}{目的言語側の分割アルゴリズムを変えて比較}
 \begin{center}
 \includegraphics[width=0.5\linewidth]{./figure/Table7.pdf}
@@ -358,7 +358,7 @@
 \end{block}
 \end{frame}
 
-\begin{frame}[label={sec:org78a33c0}]{Conclusion}
+\begin{frame}[label={sec:org09324f5}]{Conclusion}
 \begin{itemize}
 \item \textbf{Dynamic Programming Encoding} を提案
 \begin{itemize}

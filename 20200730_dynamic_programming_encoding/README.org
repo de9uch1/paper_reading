@@ -49,7 +49,7 @@
 
 * \hbox{\octicons} Links
 ** \raise0.5pt\hbox{\octicons} Paper
-*** https://www.aclweb.org/anthology/D19-1098/
+*** https://www.aclweb.org/anthology/2020.acl-main.275/
 ** \raise0.5pt\hbox{\octicons} Source Code
 *** https://github.com/xlhex/dpe
 
