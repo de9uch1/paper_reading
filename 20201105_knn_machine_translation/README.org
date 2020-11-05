@@ -1,0 +1,279 @@
+# Copyright (c) Hiroyuki Deguchi.
+#
+# This source code is licensed under the MIT license found in the
+# LICENSE file in the root directory of this source tree.
+
+#+TITLE: Nearest Neighbor Machine Translation
+#+SUBTITLE: (Khandelwal et al., 2020)
+#+AUTHOR: 出口 @@latex:~@@ 祥之 @@latex:\\ \lower2.0pt\hbox{\materials} \texttt{deguchi@ai.cs.ehime-u.ac.jp}@@
+#+DATE: 2020/11/05 @@latex:~@@ 二宮研 論文輪読会
+#+BEAMER_HEADER: \institute{}
+#+STARTUP: beamer
+#+LATEX_CLASS: beamer
+#+LATEX_CLASS_OPTIONS: [unicode, 12pt, xdvipdfmx, aspectratio=43]
+#+OPTIONS: H:2 toc:nil
+
+#+LATEX_HEADER: \usepackage[backend=bibtex, style=authoryear, maxcitenames=2]{biblatex}
+# #+LATEX_HEADER: \AtEveryCitekey{\iffootnote{\tiny\reffont}{\color{blue}}}
+#+LATEX_HEADER: \addbibresource{../resources/anthology.bib}
+#+LATEX_HEADER: \addbibresource{../resources/my.bib}
+#+LATEX_HEADER: \let\oldcite\cite
+#+LATEX_HEADER: \renewcommand{\cite}[1]{{\scriptsize\reffont{(\oldcite{#1})}}}
+#+LATEX_HEADER: \newcommand{\citet}[2][\footnotesize]{{\reffont#1\citeauthor*{#2} (\citeyear{#2})}}
+#+LATEX_HEADER: \newcommand{\mycite}[1]{{\scriptsize\reffont({\citeauthor*{#1}, \citeyear{#1}})}}
+#+LATEX_HEADER: \newcommand{\myfootcite}[1]{\footnote{\tiny\reffont\citetitle{#1}, \citeauthor*{#1}, \citeyear{#1}.}}
+#+LATEX_HEADER: \usepackage{hyperref}
+
+# #+LATEX_HEADER: \usetheme[numbering=fraction]{metropolis}
+#+LATEX_HEADER: \usetheme{metropolis}
+#+LATEX_HEADER: \setbeamertemplate{items}[default]
+#+LATEX_HEADER: \setbeamertemplate{itemize item}{\small\raise0.5pt\hbox{$\blacksquare$}}
+#+LATEX_HEADER: \setbeamertemplate{itemize subitem}{\footnotesize\raise1.5pt\hbox{$\bullet$}}
+#+LATEX_HEADER: \setbeamertemplate{itemize subsubitem}{\scriptsize\raise1.5pt\hbox{$\blacktriangleright$}}
+#+LATEX_HEADER: \setbeamertemplate{enumerate item}{\textbf{(\arabic{enumi})}}
+#+LATEX_HEADER: \addtolength{\skip\footins}{6pc plus 10pt}
+#+LATEX_HEADER: \usepackage{xltxtra}
+
+#+LATEX_HEADER: \usepackage{booktabs}
+#+LATEX_HEADER: \usepackage[absolute,overlay]{textpos}
+
+#+LATEX_HEADER: \usepackage{pgfpages}
+# #+LATEX_HEADER: \setbeameroption{show notes on second screen=right}
+
+#+LATEX_HEADER: \usepackage{tikz}
+#+LATEX_HEADER: \usepackage{tikz-dependency}
+#+LATEX_HEADER: \usetikzlibrary{arrows.meta, matrix, positioning, fit, calc, backgrounds, shapes.callouts}
+#+LATEX_HEADER: \usepackage{pgfgantt}
+#+LATEX_HEADER: \usepackage{adjustbox}
+#+LATEX_HEADER: \usepackage{array}
+#+LATEX_HEADER: \usepackage[linguistics]{forest}
+
+#+LATEX_HEADER: \newcommand{\highlightcap}[3][blue]{\tikz[baseline=(x.base)]{\node[rectangle,rounded corners,fill=#1!20](x){#2} node[below=0.5ex of x, color=#1]{#3};}}
+#+LATEX_HEADER: \newcommand{\highlight}[2][blue]{\tikz[baseline=(x.base)]{\node[rectangle,rounded corners,fill=#1!20](x){#2};}}
+#+LATEX_HEADER: \newcommand{\calloutbase}[2]{\tikz[remember picture, baseline=(#1.base)]{\node(#1) {#2};}}
+#+LATEX_HEADER: \newcommand{\calloutpos}[2]{\tikz[remember picture, overlay]{\node[below=0cm of #1] {#2};}}
+#+LATEX_HEADER: \newcommand{\calloutbelow}[3][blue]{\tikz[remember picture, overlay]{\node[rectangle callout, rounded corners, fill=#1!10, callout absolute pointer={(#2.south)}, below=of #2] {#3};}}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LATEX_HEADER: \definecolor{myalert}{HTML}{AD003D}
+#+LATEX_HEADER: \definecolor{mDarkTeal}{HTML}{23373b}
+#+LATEX_HEADER: \definecolor{mLightGreen}{HTML}{14B03D}
+
+#+LATEX_HEADER: \usefonttheme{professionalfonts}
+#+LATEX_HEADER: \usepackage[T1]{fontenc}
+#+LATEX_HEADER: \usepackage{fontspec}
+#+LATEX_HEADER: \XeTeXlinebreaklocale "ja"
+#+LATEX_HEADER: \usepackage{xeCJK}
+# #+LATEX_HEADER: \setsansfont[AutoFakeSlant=0.2]{Noto Sans CJK JP}
+#+LATEX_HEADER: \setsansfont[BoldFont={Fira Sans Bold}]{Fira Sans Book}
+#+LATEX_HEADER: \setCJKmainfont{Noto Sans CJK JP}
+#+LATEX_HEADER: \setCJKsansfont{Noto Sans CJK JP}
+#+LATEX_HEADER: \setCJKromanfont{Noto Serif CJK JP}
+#+LATEX_HEADER: \xeCJKDeclareCharClass{CJK}{`※}
+# #+LATEX_HEADER: \setromanfont[AutoFakeSlant=0.2]{Noto Serif CJK JP}
+#+LATEX_HEADER: \newfontfamily\firasans{Fira Sans}
+#+LATEX_HEADER: \newfontfamily\emojifont{Noto Emoji}
+#+LATEX_HEADER: \newfontfamily\octicons{github-octicons}
+#+LATEX_HEADER: \newfontfamily\materials{Material Icons}
+#+LATEX_HEADER: \newfontfamily\faicons{FontAwesome}
+#+LATEX_HEADER: \newfontfamily\reffont{Times New Roman}
+
+# #+LATEX_HEADER: \usepackage{amsfonts}
+#+LATEX_HEADER: \usepackage{amssymb}
+#+LATEX_HEADER: \usepackage{mathfont}
+#+LATEX_HEADER: \usepackage{bbm}
+# #+LATEX_HEADER: \usepackage{amslatex}
+
+#+LATEX_HEADER: \renewcommand{\baselinestretch}{1.3}
+
+** \hbox{\octicons} Links
+*** \raise0.5pt\hbox{\octicons} Paper
+**** https://arxiv.org/abs/2010.00710
+*** COMMENT \raise0.5pt\hbox{\octicons} Source Code
+**** 
+** Introduction
+\vspace{-0.2cm}
+*** k近傍法を利用した生成により翻訳性能の大幅改善
+\vspace{-0.2cm}
+\small
+    - 翻訳時に訓練データを参照してk近傍法を適用 \vspace{-0.2cm}
+      - 翻訳時の処理のみが変わるため，追加の訓練無しで従来の訓練済み NMT モデルをそのまま利用可能
+    - 翻訳性能の大幅改善
+      - SOTAな独英翻訳システムと比較して +1.5 BLEU %
+      - 多言語翻訳システムにおいて英独・中英・英中翻訳などで +3 BLEU %
+      - ドメインに特化したデータ (翻訳のドメイン適応) に対して平均で +9.2 BLEU %
+** k-Nearest Neighbor (kNN)
+*** 最も近い例に基づいた分類法
+    \vspace{0.5cm}
+    距離が近いサンプル $k$ 個を参照し，最も一般的なクラスを割り当てる
+
+**** 例: 赤三角と青四角の 2 クラス分類
+     :PROPERTIES:
+     :BEAMER_COL: 0.65
+     :BEAMER_ENV: block
+     :END:
+     - $k = 3$ のとき :: 緑丸→赤三角クラス
+     - $k = 5$ のとき :: 緑丸→青四角クラス
+
+**** kNN の図
+     :PROPERTIES:
+     :BEAMER_COL: 0.35
+     :END:
+     #+ATTR_LATEX: :width \linewidth
+     [[./figure/KnnClassification.pdf]]
+     \tiny
+     https://en.wikipedia.org/wiki/K-nearest_neighbors_algorithm (CC-BY-SA 3.0; by Antti Ajanki)
+
+* Proposed Method
+** Nearest Neighbor Machine Translation
+*** 翻訳時，ステップ毎に k 近傍法を適用して探索
+    #+ATTR_LATEX: :width \linewidth
+    [[./figure/Figure1.pdf]]
+
+    - データストア: :: 訓練データ (対訳コーパス) の目的言語文の各単語位置における中間表現を事前に作成
+    - $q = f(x, \hat{y}_{1:i-1})$ : :: 翻訳時の各ステップにおける中間表現
+
+** Nearest Neighbor Machine Translation
+    #+ATTR_LATEX: :width \linewidth
+    [[./figure/Figure1.pdf]]
+\metroset{block=fill}
+\renewcommand{\baselinestretch}{1.0}
+\small
+**** 翻訳時の動作
+     1. $q$ とデータストア内の中間表現との距離から $k$ 近傍を獲得
+     2. $k$ 近傍内の各距離に対して温度付き softmax 関数を適用
+     3. 2. の計算結果を集約し，確率に変換
+     4. モデルの出力確率と 3. の確率を線形補間
+
+\renewcommand{\baselinestretch}{1.3}
+
+** Datastore creation
+*** 全翻訳過程の中間表現を事前に作成
+    \begin{equation*}
+      (\highlight[orange]{$\mathcal{K}$},\highlight[mLightGreen]{$\mathcal{V}$}) = \{ (\highlight[orange]{$f(s, t_{1:i-1})$}, \highlight[mLightGreen]{$t_i$}), \forall t_i \in t \mid (s, t) \in (\mathcal{S}, \mathcal{T}) \} 
+    \end{equation*}
+    ※ $f$ : NMT モデル (デコーダの中間表現を返す) @@latex:\\@@
+    ※ $(\mathcal{S}, \mathcal{T})$ : 対訳コーパス
+
+    \small
+    - \highlight[orange]{キー: 中間表現}，\highlight[mLightGreen]{値: キーから生成される正解トークン $t_i$}
+    - 原言語文の情報はキーの中に暗黙的に含まれる
+
+** Generation
+ \small
+# *** モデルの出力確率と距離に基づいた確率を線形補間
+*** 温度付き softmax により距離に基づいた確率を算出
+    \begin{equation*}
+      \highlight[cyan]{$p_{kNN}(y_i | x, \hat{y}_{1:i-1})$} \propto \sum_{(k_j, v_j) \in \mathcal{N}} \mathbbm{1}_{y_i = v_j} \exp \left( \frac{ \highlight[orange]{$-d(k_j, f(x, \hat{y}_{1:i-1}))$} }{T} \right)
+    \end{equation*}
+    ※ $\hat{y}$ : 翻訳時の生成済みトークン @@latex:\\@@
+    ※ $\mathcal{N}$ : 距離関数に \alert{最小自乗誤差} を用いて得る $k$ 近傍中間表現
+
+\vspace{1cm}
+*** NMT モデルの出力確率 @@latex:\highlight[mLightGreen]{ $p_{MT}(y_i | x, \hat{y}_{1:i-1})$ }@@ と線形補間
+    \begin{equation*}
+      p(y_i | x, \hat{y}_{1:i-1}) = \lambda \highlightcap[cyan]{$p_{kNN}(y_i | x, \hat{y}_{1:i-1})$}{距離に基づく確率} + (1 - \lambda) \highlightcap[mLightGreen]{$p_{MT}(y_i | x, \hat{y}_{1:i-1})$}{モデル出力確率}
+    \end{equation*}
+
+** Experimental Setup
+*** データセット
+    1. 通常の翻訳 (WMT'19 De-En)
+    2. 多言語翻訳 (訓練: CCMatrix，評価: newstest2018, newstest2019, TED Talks)
+    3. ドメイン適応 (multi-domains; Medical, Law, IT, Koran, Subtitles)
+
+*** モデル
+    - NMT システム :: Transformer (\texttt{Fairseq})
+
+** kNN-MT, Computational Cost
+\small
+    - $k$ NN-MT :: \texttt{Faiss} (高速な k 近傍探索ライブラリ) を使用
+      - キー: Transformer 最終層 FFN への入力
+        - 多言語翻訳: キー 5M，131K クラスタ
+        - ドメイン適応: キー 1M，4K クラスタ
+      - 64 近傍，32 クラスタを探索 ( $k = 64$ )
+
+*** 計算時間と引き換えに追加訓練無しで翻訳性能を改善
+    - データストア作成 :: 事前に全てのサンプルに対して一度順方向に計算すればよい @@latex:\\@@ (訓練 1 エポック分と同等のコスト)
+    - 翻訳時 :: データストア全体 (10 億のオーダー) から 64 近傍を得るため，生成速度が 2 桁程遅くなる
+
+** Experiments
+*** WMT'19 De-En
+    #+ATTR_LATEX: :booktabs t
+    |----------+-----------------------|
+    | モデル   | BLEU (%)              |
+    |----------+-----------------------|
+    | baseline | 37.59                 |
+    | +kNN-MT  | \textbf{39.08 (+1.5)} |
+    |----------+-----------------------|
+
+    - 追加の訓練無しで 1.5 BLEU % の性能改善
+
+** Multilingual Machine Translation
+*** 評価する言語対と同じ言語対のデータストアを構築
+    #+ATTR_LATEX: :width \linewidth
+    [[./figure/Table1.pdf]]
+
+** Multilingual Machine Translation
+*** 原言語側を英語にしてデータストアを構築
+    #+ATTR_LATEX: :width \linewidth
+    [[./figure/Table2.pdf]]
+
+** Domain Adaptation
+*** 5 つの異なるドメインに対し zero-shot 翻訳
+    #+ATTR_LATEX: :width \linewidth
+    [[./figure/Table3.pdf]]
+
+** Tuning kNN-MT (on validation set)
+   \small
+*** 探索幅 $k$
+    - 実験では 64 で固定
+    - 大きくしても性能は変わらず，下がることも (ノイズ?)
+
+*** Softmax の温度パラメータ $T$
+**** 
+     :PROPERTIES:
+     :BEAMER_COL: 0.6
+     :END:
+     - $T$ \textbf{が大きくなるほど:}
+       - 分布が平坦になる
+       - コンテクストへの過剰適合が抑えられる
+       - 多様性が高まる
+**** 
+     :PROPERTIES:
+     :BEAMER_COL: 0.4
+     :END:
+     #+ATTR_LATEX: :width \linewidth
+     [[./figure/Figure2.pdf]]
+
+** Tuning kNN-MT (on validation set)
+*** データストアの大きさと翻訳性能
+    #+ATTR_LATEX: :width 0.5\linewidth
+    [[./figure/Figure3.pdf]]
+
+** Qualitative Analysis
+*** kNN 分布のみで生成される場合 ( $\lambda = 1$ )
+    \vspace{-0.5cm}
+    #+ATTR_LATEX: :width 0.75\linewidth
+    [[./figure/Figure4.pdf]]
+
+** Related Work (Retrieval in Translation)
+   \renewcommand{\baselinestretch}{1.2}
+*** NMT による翻訳と検索の組み合わせ
+    - 対訳コーパスから $n\text{-gram}$ 翻訳句を検索 \myfootcite{zhang-etal-2018-guiding}
+    - キャッシュに保存した翻訳履歴から検索 \myfootcite{tu-etal-2018-learning}
+
+*** 用例に基づく機械翻訳
+    - アナロジーに基づく機械翻訳 \myfootcite{nagao-1984-framework}
+    - 編集距離に基づく似た原言語文から翻訳例を検索 \myfootcite{gu-etal-2018-search}
+    - NMT と翻訳メモリ検索の組み合わせ \myfootcite{bulte-tezcan-2019-neural} \myfootcite{xu-etal-2020-boosting}
+
+    \vspace{0.3cm}
+    \renewcommand{\baselinestretch}{1.3}
+
+** Conclusion
+*** 追加訓練無しに従来の NMT モデルに適用できる @@latex:\\@@ 新たな翻訳法 kNN-MT を提案
+    - 翻訳時，NMT モデルの中間表現と近いコンテクストベクタを k 近傍法により探索
+    - kNN-MT による確率とモデルの出力確率との線形補間から出力単語を得ることで翻訳性能を大幅改善
+
+*** 今後の課題
+    - 手法の効率化
+      - 頻出する単語をダウンサンプリングするなど
