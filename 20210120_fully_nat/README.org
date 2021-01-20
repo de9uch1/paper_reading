@@ -1,0 +1,285 @@
+# Copyright (c) Hiroyuki Deguchi.
+#
+# This source code is licensed under the MIT license found in the
+# LICENSE file in the root directory of this source tree.
+
+#+TITLE: Fully Non-autoregressive @@latex:\\@@ Neural Machine Translation: @@latex:\\@@ Tricks of the Trade
+#+SUBTITLE: (Jiatao Gu and Xiang Kong, 2020)
+#+AUTHOR: 出口 @@latex:~@@ 祥之 @@latex:\\ \lower2.0pt\hbox{\materials} \texttt{deguchi@ai.cs.ehime-u.ac.jp}@@
+#+DATE: 2021/01/20 @@latex:~@@ 二宮研 論文輪読会
+#+BEAMER_HEADER: \institute{}
+#+STARTUP: beamer
+#+LATEX_CLASS: beamer
+#+LATEX_CLASS_OPTIONS: [unicode, 12pt, xdvipdfmx, aspectratio=43]
+#+OPTIONS: H:1 toc:nil
+
+#+LATEX_HEADER: \usepackage[backend=bibtex, style=authoryear, maxcitenames=2]{biblatex}
+# #+LATEX_HEADER: \AtEveryCitekey{\iffootnote{\tiny\reffont}{\color{blue}}}
+#+LATEX_HEADER: \addbibresource{../resources/anthology.bib}
+#+LATEX_HEADER: \addbibresource{../resources/my.bib}
+#+LATEX_HEADER: \let\oldcite\cite
+#+LATEX_HEADER: \renewcommand{\cite}[1]{{\scriptsize\reffont{(\oldcite{#1})}}}
+#+LATEX_HEADER: \newcommand{\citet}[2][\footnotesize]{{\reffont#1\citeauthor*{#2} (\citeyear{#2})}}
+#+LATEX_HEADER: \newcommand{\mycite}[1]{{\scriptsize\reffont({\citeauthor*{#1}, \citeyear{#1}})}}
+#+LATEX_HEADER: \newcommand{\myfootcite}[1]{\footnote{\tiny\reffont\citetitle{#1}, \citeauthor*{#1}, \citeyear{#1}.}}
+#+LATEX_HEADER: \usepackage{hyperref}
+
+# #+LATEX_HEADER: \usetheme[numbering=fraction]{metropolis}
+#+LATEX_HEADER: \usetheme{metropolis}
+#+LATEX_HEADER: \setbeamertemplate{items}[default]
+#+LATEX_HEADER: \setbeamertemplate{itemize item}{\small\raise0.5pt\hbox{$\blacksquare$}}
+#+LATEX_HEADER: \setbeamertemplate{itemize subitem}{\footnotesize\raise1.5pt\hbox{$\bullet$}}
+#+LATEX_HEADER: \setbeamertemplate{itemize subsubitem}{\scriptsize\raise1.5pt\hbox{$\blacktriangleright$}}
+#+LATEX_HEADER: \setbeamertemplate{enumerate item}{\textbf{(\arabic{enumi})}}
+#+LATEX_HEADER: \addtolength{\skip\footins}{6pc plus 10pt}
+#+LATEX_HEADER: \usepackage{xltxtra}
+
+#+LATEX_HEADER: \usepackage{booktabs}
+#+LATEX_HEADER: \usepackage[absolute,overlay]{textpos}
+# #+LATEX_HEADER: \usepackage[colorgrid,gridunit=pt,texcoord]{eso-pic}
+
+#+LATEX_HEADER: \usepackage{pgfpages}
+# #+LATEX_HEADER: \setbeameroption{show notes on second screen=right}
+
+#+LATEX_HEADER: \usepackage{tikz}
+#+LATEX_HEADER: \usepackage{tikz-dependency}
+#+LATEX_HEADER: \usetikzlibrary{arrows.meta, matrix, positioning, fit, calc, backgrounds, shapes.callouts}
+#+LATEX_HEADER: \usepackage{pgfgantt}
+#+LATEX_HEADER: \usepackage{adjustbox}
+#+LATEX_HEADER: \usepackage{array}
+#+LATEX_HEADER: \usepackage[linguistics]{forest}
+
+#+LATEX_HEADER: \newcommand{\highlightcap}[3][blue]{\tikz[baseline=(x.base)]{\node[rectangle,rounded corners,fill=#1!20](x){#2} node[below=0.5ex of x, color=#1]{#3};}}
+#+LATEX_HEADER: \newcommand{\highlight}[2][blue]{\tikz[baseline=(x.base)]{\node[rectangle,rounded corners,fill=#1!20](x){#2};}}
+#+LATEX_HEADER: \newcommand{\calloutbase}[2]{\tikz[remember picture, baseline=(#1.base)]{\node(#1) {#2};}}
+#+LATEX_HEADER: \newcommand{\calloutpos}[2]{\tikz[remember picture, overlay]{\node[below=0cm of #1] {#2};}}
+#+LATEX_HEADER: \newcommand{\calloutbelow}[3][blue]{\tikz[remember picture, overlay]{\node[rectangle callout, rounded corners, fill=#1!10, callout absolute pointer={(#2.south)}, below=of #2] {#3};}}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LATEX_HEADER: \definecolor{myalert}{HTML}{AD003D}
+#+LATEX_HEADER: \definecolor{mDarkTeal}{HTML}{23373b}
+#+LATEX_HEADER: \definecolor{mLightGreen}{HTML}{14B03D}
+
+#+LATEX_HEADER: \usefonttheme{professionalfonts}
+#+LATEX_HEADER: \usepackage[T1]{fontenc}
+#+LATEX_HEADER: \usepackage{fontspec}
+#+LATEX_HEADER: \XeTeXlinebreaklocale "ja"
+#+LATEX_HEADER: \usepackage{xeCJK}
+# #+LATEX_HEADER: \setsansfont[AutoFakeSlant=0.2]{Noto Sans CJK JP}
+#+LATEX_HEADER: \setsansfont[BoldFont={Fira Sans Bold}]{Fira Sans Book}
+#+LATEX_HEADER: \setCJKmainfont{Noto Sans CJK JP}
+#+LATEX_HEADER: \setCJKsansfont{Noto Sans CJK JP}
+#+LATEX_HEADER: \setCJKromanfont{Noto Serif CJK JP}
+#+LATEX_HEADER: \xeCJKDeclareCharClass{CJK}{`※}
+# #+LATEX_HEADER: \setromanfont[AutoFakeSlant=0.2]{Noto Serif CJK JP}
+#+LATEX_HEADER: \newfontfamily\firasans{Fira Sans}
+#+LATEX_HEADER: \newfontfamily\emojifont{Noto Emoji}
+#+LATEX_HEADER: \newfontfamily\octicons{github-octicons}
+#+LATEX_HEADER: \newfontfamily\materials{Material Icons}
+#+LATEX_HEADER: \newfontfamily\faicons{FontAwesome}
+#+LATEX_HEADER: \newfontfamily\reffont{Times New Roman}
+
+# #+LATEX_HEADER: \usepackage{amsfonts}
+#+LATEX_HEADER: \usepackage{amssymb}
+#+LATEX_HEADER: \usepackage{mathfont}
+#+LATEX_HEADER: \usepackage{bbm}
+# #+LATEX_HEADER: \usepackage{amslatex}
+
+#+LATEX_HEADER: \newcommand{\argmax}{\mathop{\rm arg~max}\limits}
+#+LATEX_HEADER: \newcommand{\argmin}{\mathop{\rm arg~min}\limits}
+
+#+LATEX_HEADER: \renewcommand{\baselinestretch}{1.3}
+
+** \hbox{\octicons} Links
+*** \raise0.5pt\hbox{\octicons} Paper
+**** https://arxiv.org/abs/2012.15833
+*** COMMENT \raise0.5pt\hbox{\octicons} Source Code
+**** 
+** Introduction
+*** NAT が Autoregressive Transformer と comparable に
+    - WMT14 En-De: 27.49 BLEU (%)，翻訳速度 16.5x
+      - Autoregressive Transformer から性能を劣化させずに翻訳速度を改善
+
+    #+ATTR_LATEX: :width 0.6\linewidth
+    [[./figure/Figure1.pdf]]
+
+** Motivation
+*** NAT とは何か，なぜ性能が劣化しやすいか
+    - AT と NAT の比較
+    #+ATTR_LATEX: :booktabs t
+    \centering
+    \begin{tabular}{lcc} \toprule
+      & AT & NAT \\\midrule
+    生成確率 & $p_\theta(y_t |  y_{<t}, x_{1:T'})$ & $\prod_{t=1}^T p_\theta(y_t  | x_{1:T'})$ \\
+    生成時間 & $O(T)$ & $O(1)$ \\
+    \bottomrule
+    \end{tabular}
+
+    - \small NAT の問題点: 目的言語文中の単語共起を捉えられない
+      #+ATTR_LATEX: :width 0.7\linewidth
+      [[./figure/Figure2.pdf]]
+
+      - 解決策?: Iterative refinement (← non ``fully-NAT''...)
+
+** Proposed Method
+*** single forward で生成できる ``fully-NAT''
+    - 従来研究で提案されてきた数々の NAT モデルは出力単語間の @@latex:\textbf{\alert{依存削減 (dependency reduction)}}@@ を目的として設計
+      - cf. 数々の NAT モデル: \\
+        \scriptsize https://github.com/kahne/NonAutoregGenProgress
+    - 複数の手法を組み合わせて\alert{依存削減}することにより，fully-NAT で AT の性能に追い付く
+
+** Data: Knowledge Distillation (KD)
+*** 訓練データの目的言語文を教師モデルの出力に置換
+    - 最も効果の高い依存削減
+    - 目的言語文のノイズが減る
+    - 原言語文との対応関係がより決定的に
+    - 教師モデルのサイズは NAT モデルに応じて適切に選ぶ必要がある
+
+\metroset{block=fill}
+**** NAT と KD についての解析 (ICLR 2020):
+     :PROPERTIES:
+     :BEAMER_ENV: block
+     :END:
+     \scriptsize https://jiataogu.me/publication/understand-distillation
+
+** Model: Latent Variables
+*** \citet[\normalsize]{shu-etal-2020-latent} のモデルを採用
+    \vspace{-0.4cm}
+    #+ATTR_LATEX: :width 0.85\linewidth
+    [[./figure/Figure3.pdf]]
+
+**** 
+     :PROPERTIES:
+     :BEAMER_COL: 1.1
+     :END:
+     \vspace{-0.5cm}
+     - 生成確率: :: $p_\theta (\boldsymbol{y}|\boldsymbol{x}) = \int_{\boldsymbol{z}} p_\theta (\boldsymbol{z}|\boldsymbol{x}) \prod_{t=1}^T p_\theta (y_t | \boldsymbol{z}, \boldsymbol{x}) d\boldsymbol{z}$
+     - ELBO: :: $\underbrace{\mathbb{E}_{\boldsymbol{z} \sim q_\phi} \left[ \log p_\theta (\boldsymbol{y} | \boldsymbol{z}, \boldsymbol{x}) \right]}_{\text{likelihood}} - \mathcal{D}_{\mathrm{KL}} (q_\phi (\boldsymbol{z} | \boldsymbol{x}, \boldsymbol{y} ) \parallel p_\theta ( \boldsymbol{z} | \boldsymbol{x}))$
+
+**** 
+     \vspace{-0.7cm}
+     - 事後確率 $q_\phi (\boldsymbol{z} | \boldsymbol{x}, \boldsymbol{y} )$ を得るために Encoder-Decoder モデルを使用
+     - $\theta$ と $\phi$ の間で embedding layer のみパラメータ共有
+
+** Loss Function: Latent Alignments
+*** cross entropy (CE) loss の代わりに CTC loss を採用
+    #+ATTR_LATEX: :width \linewidth
+    [[./figure/Figure3.pdf]]
+
+    - CE: 出力の位置のずれに対して敏感
+    - CTC: 出力位置に柔軟性をもたせる \cite{saharia-etal-2020-nonautoregressive}
+      \vspace{-0.3cm}
+      \begin{equation*}
+        \log p_\theta (\boldsymbol{y}|\boldsymbol{x}) = \log \sum_{\boldsymbol{a}\in\Gamma(\boldsymbol{y})} p_\theta (\boldsymbol{a}|\boldsymbol{x}), ~ \boldsymbol{a}: \text{latent alignments}
+      \end{equation*}
+
+    \begin{textblock*}{\linewidth}(195pt, 82pt)
+      \begin{adjustbox}{width=0.35\linewidth}
+        \tikz{\draw[rounded corners, line width=3pt, green] (0, 0) rectangle (5.5, 1);}
+      \end{adjustbox}
+    \end{textblock*}
+
+** Learning: Glancing Targets
+*** 訓練時に目的言語文をランダムにマスクして入力 \cite{ghazvininejad-etal-2019-mask}
+    - 訓練時の目的関数: \\
+      $\log p_\theta (\boldsymbol{y} | \boldsymbol{x})$ → $\log p_\theta (\boldsymbol{y} | \boldsymbol{m} \odot \boldsymbol{y}, \boldsymbol{x}), \boldsymbol{m} \sim \gamma (l, \boldsymbol{y}), l \sim \mathcal{U}_{|\boldsymbol{y}|}$ \\
+      - $\boldsymbol{m}$ : マスク
+      - $\gamma$ : マスクトークン数 $l$ を受け取るサンプル関数
+
+    - カリキュラム学習によって訓練 (GLAT) \cite{qian-etal-2020-glancing}
+      - 訓練時と翻訳時のギャップを埋める
+      - $l \sim g(f_{ratio} \cdot \mathcal{D}(\hat{\boldsymbol{y}}, \boldsymbol{y}))$ 
+        - $\mathcal{D}$ はモデル予測 $\hat{\boldsymbol{y}}$ と正解との差 (レーベンシュタイン距離など)
+        - $f_{ratio}$ はマスク割合 (ハイパーパラメータ)
+        - 本論文では $g$ にポアソン分布を使用
+
+** Learning: Glancing Targets
+   - 訓練時のデコーダ入力長
+     - GLAT \cite{qian-etal-2020-glancing} : 参照訳のトークン長
+     - 提案モデル (CTC-based) : 出力系列長 $\ge$ 入力系列長
+       - viterbi aligned tokens: $\hat{\boldsymbol{a}} = \argmax_{\boldsymbol{a} \in \Gamma (\boldsymbol{y})} p_\theta (\boldsymbol{a} | \boldsymbol{x})$
+
+** Summary
+*** 
+   :PROPERTIES:
+   :BEAMER_COL: 1.15
+   :END:
+   #+ATTR_LATEX: :width \linewidth
+   [[./figure/Table1.pdf]]
+
+** Experiments
+*** Dataset
+    - WMT14 EN $\leftrightarrow$ DE (4.0M)
+    - WMT16 EN $\leftrightarrow$ RO (610k)
+    - WMT20 JA $\rightarrow$ EN (13M (filterd))
+
+*** Knowledge Distillation
+    - 教師モデルによって生成した目的言語文から学習
+      - WMT14 EN $\leftrightarrow$ DE, WMT16 EN $\leftrightarrow$ RO: Transformer \textit{base}
+      - WMT20 JA $\rightarrow$ EN: Transformer \textit{big}
+    - ビーム幅 5 のビーム探索で目的言語文を生成
+
+** Experiments
+*** Decoding
+    - 各位置で最大確率を持つトークンを生成後， $\Gamma^{-1}$ によって出力を獲得
+    - noisy parallel decoding (NPD) \cite{gu-etal-2018-non}
+    - ビーム探索や $n\text{-gram}$ 言語モデルと組み合わせ
+      \vspace{-0.3cm}
+      \begin{equation*}
+        \log p_\theta (\boldsymbol{y} | \boldsymbol{x}) + \alpha \log p_{\mathrm{LM}} (\boldsymbol{y}) + \beta \log |\boldsymbol{y}|
+      \end{equation*}
+
+*** Baselines: Autoregressive Transformer (AT)
+    - \textit{base}
+    - \textit{big}
+    - \textit{Deep Encoder-Shallow Decoder} (12-1) \cite{kasai-etal-2021-deep}
+
+** Evaluation
+   - 翻訳性能 :: BLEU
+   - 翻訳速度 ::
+     - $\mathcal{L}_{1}^{\mathrm{GPU}}$ : 並列計算\alert{可能}な計算機上における \alert{1 文}の翻訳速度
+     - $\mathcal{L}_{1}^{\mathrm{CPU}}$ : 並列計算\alert{不可能}な計算機上における \alert{1 文}の翻訳速度
+     - $\mathcal{L}_{\mathrm{max}}^{\mathrm{GPU}}$ : 並列計算\alert{可能}な計算機上における\alert{ミニバッチ単位 (複数文)} の翻訳速度
+
+** Implementation Details
+   - VAE: エンコーダ最終層出力から $\boldsymbol{z} \in \mathbb{R}^{T' \times 8}$ を計算
+     - $\boldsymbol{z}$ は線形変換してエンコーダ出力に加えられる
+     - posterior network には 3 層の Transformer
+     - KL-annealing
+   - CTC: 原言語文の 3 倍のトークン数をデコーダに入力
+     - \textit{SoftCopy} \cite{wei-etal-2019-imitation}
+   - GLAT: mask ratio $f_{\mathrm{ratio}} = 0.5$
+
+*** 
+    その他は論文参照
+
+** Results: WMT14 EN $\leftrightarrow$ DE, WMT16 EN $\leftrightarrow$ RO
+   #+ATTR_LATEX: :width 0.9\linewidth
+    [[./figure/Table2.pdf]]
+
+** Results: WMT20 JA $\rightarrow$ DE
+   #+ATTR_LATEX: :width \linewidth
+    [[./figure/Table3.pdf]]
+
+** Quality v.s. Latency
+   #+ATTR_LATEX: :width \linewidth
+    [[./figure/Figure4.pdf]]
+
+** Ablation Study (on WMT14 EN $\rightarrow$ DE)
+   #+ATTR_LATEX: :width 0.7\linewidth
+    [[./figure/Table4.pdf]]
+
+** Ablation Study (on WMT14 EN $\rightarrow$ DE)
+   #+ATTR_LATEX: :width 0.7\linewidth
+    [[./figure/Table5.pdf]]
+
+** Upsampling Ratio ( $\lambda$ ) for CTC Loss
+   #+ATTR_LATEX: :width 0.7\linewidth
+    [[./figure/Table6.pdf]]
+
+** Conclusion
+*** fully NAT の性能が AT に追い付いた
+    - 4 つの \textit{dependency reduction} によって SOTA な fully NAT モデルを設計
+      - Data: Knowledge Distillation
+      - Model: Latent Variables
+      - Loss Function: Latent Alignments
+      - Learning: Glancing Targets
