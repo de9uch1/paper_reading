@@ -1,0 +1,388 @@
+# Copyright (c) Hiroyuki Deguchi.
+#
+# This source code is licensed under the MIT license found in the
+# LICENSE file in the root directory of this source tree.
+
+#+TITLE: Nearest Neighbor Machine Translation
+#+SUBTITLE: (Khandelwal et al., ICLR 2021)
+#+AUTHOR: Hiroyuki Deguchi @@latex:\\ \lower2.0pt\hbox{\materials} \texttt{deguchi.hiroyuki.db0@is.naist.jp}@@
+#+DATE: 2021/05/12 @@latex:~@@ NAIST MT study group
+#+BEAMER_HEADER: \institute{}
+#+STARTUP: beamer
+#+LATEX_CLASS: beamer
+#+LATEX_CLASS_OPTIONS: [unicode, 12pt, xdvipdfmx, aspectratio=169]
+#+OPTIONS: H:2 toc:nil
+
+#+LATEX_HEADER: \usepackage[backend=bibtex, style=authoryear, maxcitenames=2]{biblatex}
+# #+LATEX_HEADER: \AtEveryCitekey{\iffootnote{\tiny\reffont}{\color{blue}}}
+#+LATEX_HEADER: \addbibresource{../resources/anthology.bib}
+#+LATEX_HEADER: \addbibresource{../resources/my.bib}
+#+LATEX_HEADER: \let\oldcite\cite
+#+LATEX_HEADER: \renewcommand{\cite}[1]{{\scriptsize\reffont{(\oldcite{#1})}}}
+#+LATEX_HEADER: \newcommand{\citet}[2][\footnotesize]{{\reffont#1\citeauthor*{#2} (\citeyear{#2})}}
+#+LATEX_HEADER: \newcommand{\mycite}[1]{{\scriptsize\reffont({\citeauthor*{#1}, \citeyear{#1}})}}
+#+LATEX_HEADER: \newcommand{\myfootcite}[1]{\footnote{\tiny\reffont\citetitle{#1}, \citeauthor*{#1}, \citeyear{#1}.}}
+#+LATEX_HEADER: \usepackage{hyperref}
+
+# #+LATEX_HEADER: \usetheme[numbering=fraction]{metropolis}
+#+LATEX_HEADER: \usetheme{metropolis}
+#+LATEX_HEADER: \setbeamertemplate{items}[default]
+#+LATEX_HEADER: \setbeamertemplate{itemize item}{\small\raise0.5pt\hbox{$\blacksquare$}}
+#+LATEX_HEADER: \setbeamertemplate{itemize subitem}{\footnotesize\raise1.5pt\hbox{$\bullet$}}
+#+LATEX_HEADER: \setbeamertemplate{itemize subsubitem}{\scriptsize\raise1.5pt\hbox{$\blacktriangleright$}}
+#+LATEX_HEADER: \setbeamertemplate{enumerate item}{\textbf{\arabic{enumi}.}}
+#+LATEX_HEADER: \addtolength{\skip\footins}{6pc plus 10pt}
+#+LATEX_HEADER: \usepackage{xltxtra}
+
+#+LATEX_HEADER: \usepackage{booktabs}
+#+LATEX_HEADER: \usepackage[absolute,overlay]{textpos}
+
+#+LATEX_HEADER: \usepackage{pgfpages}
+# #+LATEX_HEADER: \setbeameroption{show notes on second screen=right}
+
+#+LATEX_HEADER: \usepackage{tikz}
+#+LATEX_HEADER: \usepackage{tikz-dependency}
+#+LATEX_HEADER: \usetikzlibrary{arrows.meta, matrix, positioning, fit, calc, backgrounds, shapes.callouts}
+#+LATEX_HEADER: \usepackage{pgfgantt}
+#+LATEX_HEADER: \usepackage{adjustbox}
+#+LATEX_HEADER: \usepackage{array}
+#+LATEX_HEADER: \usepackage[linguistics]{forest}
+
+#+LATEX_HEADER: \newcommand{\highlightcap}[3][blue]{\tikz[baseline=(x.base)]{\node[rectangle,rounded corners,fill=#1!20](x){#2} node[below=0.5ex of x, color=#1]{#3};}}
+#+LATEX_HEADER: \newcommand{\highlight}[2][blue]{\tikz[baseline=(x.base)]{\node[rectangle,rounded corners,fill=#1!20](x){#2};}}
+#+LATEX_HEADER: \newcommand{\calloutbase}[2]{\tikz[remember picture, baseline=(#1.base)]{\node(#1) {#2};}}
+#+LATEX_HEADER: \newcommand{\calloutpos}[2]{\tikz[remember picture, overlay]{\node[below=0cm of #1] {#2};}}
+#+LATEX_HEADER: \newcommand{\calloutbelow}[3][blue]{\tikz[remember picture, overlay]{\node[rectangle callout, rounded corners, fill=#1!10, callout absolute pointer={(#2.south)}, below=of #2] {#3};}}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LATEX_HEADER: \definecolor{myalert}{HTML}{AD003D}
+#+LATEX_HEADER: \definecolor{mDarkTeal}{HTML}{23373b}
+#+LATEX_HEADER: \definecolor{mLightGreen}{HTML}{14B03D}
+
+#+LATEX_HEADER: \usefonttheme{professionalfonts}
+#+LATEX_HEADER: \usepackage[T1]{fontenc}
+#+LATEX_HEADER: \usepackage{fontspec}
+#+LATEX_HEADER: \XeTeXlinebreaklocale "ja"
+#+LATEX_HEADER: \usepackage{xeCJK}
+# #+LATEX_HEADER: \setsansfont[AutoFakeSlant=0.2]{Noto Sans CJK JP}
+#+LATEX_HEADER: \setsansfont[BoldFont={Fira Sans Bold}]{Fira Sans Book}
+#+LATEX_HEADER: \setCJKmainfont[AutoFakeSlant=0.2]{Noto Sans CJK JP}
+# #+LATEX_HEADER: \setCJKsansfont{Noto Sans CJK JP}
+# #+LATEX_HEADER: \setCJKromanfont{Noto Serif CJK JP}
+# #+LATEX_HEADER: \xeCJKDeclareCharClass{CJK}{`※}
+# #+LATEX_HEADER: \setromanfont[AutoFakeSlant=0.2]{Noto Serif CJK JP}
+#+LATEX_HEADER: \newfontfamily\firasans{Fira Sans}
+# #+LATEX_HEADER: \newfontfamily\emojifont{Noto Color Emoji}
+#+LATEX_HEADER: \newfontfamily\octicons{octicons}
+#+LATEX_HEADER: \newfontfamily\materials{Material Icons}
+#+LATEX_HEADER: \newfontfamily\faicons{FontAwesome}
+#+LATEX_HEADER: \newfontfamily\reffont{Times New Roman}
+
+# #+LATEX_HEADER: \usepackage{amsfonts}
+#+LATEX_HEADER: \usepackage{amssymb}
+#+LATEX_HEADER: \usepackage{mathfont}
+#+LATEX_HEADER: \usepackage{bbm}
+# #+LATEX_HEADER: \usepackage{amslatex}
+
+#+LATEX_HEADER: \renewcommand{\baselinestretch}{1.2}
+#+LATEX_HEADER: \setbeamersize{text margin left=4mm}
+#+LATEX_HEADER: \setbeamersize{text margin right=4mm}
+
+** \hbox{\octicons} Links
+*** \raise0.5pt\hbox{\octicons} Paper
+**** https://openreview.net/pdf?id=7wCBOfJ8hJM
+*** COMMENT \raise0.5pt\hbox{\octicons} Source Code
+**** 
+** Introduction
+*** Combining NMT and k-nearest-neighbors based EBMT models 
+    \metroset{block=fill}
+**** Summary
+      :PROPERTIES:
+      :BEAMER_ENV: block
+      :END:
+      - The decoder \textbf{retrieves} translation examples from training data \textbf{at test time}.
+      - Learned NMT models can be used \textbf{w/o additional training}.
+
+**** Contributions
+      :PROPERTIES:
+      :BEAMER_ENV: block
+      :END:
+      - The proposed method:
+        - improves a \textbf{SOTA De-En translation model} by \textbf{1.5 BLEU}.
+        - can \textbf{adapt models to diverse domains} by using a in-domain datastore, improving results by an average of \textbf{9.2 BLEU}.
+        - improves a \textbf{multilingual model} by \textbf{3 BLEU} on En-{De, Zh} translation.
+
+** k Nearest Neighbors (kNN) classification
+*** Non-parametric classification method
+    - The object is assigned to the class most common among its k nearest neighbors.
+
+*** 
+    :PROPERTIES:
+    :BEAMER_ENV: ignoreheading
+    :END:
+    \metroset{block=fill}
+*** Example of k-NN classification:
+    :PROPERTIES:
+    :BEAMER_ENV: block
+    :END:
+**** 
+     :PROPERTIES:
+     :BEAMER_COL: 0.4
+     :END:
+     \vspace{-0.3cm}
+     - green dot →
+       - $k = 3$ :: : red triangle class
+       - $k = 5$ :: : blue square class
+
+**** kNN
+     :PROPERTIES:
+     :BEAMER_COL: 0.3
+     :END:
+     \vspace{-0.3cm}
+     #+ATTR_LATEX: :width 0.7\linewidth
+     [[./figure/KnnClassification.pdf]]
+     \tiny \vspace{-0.3cm}
+     https://en.wikipedia.org/wiki/K-nearest_neighbors_algorithm @@latex:\\@@ (CC-BY-SA 3.0; by Antti Ajanki)
+
+* Proposed Method
+** Nearest Neighbor Machine Translation
+*** Augmenting the decoder of a pre-trained NMT model with a nearest neighbor retrieval at each time step
+    #+ATTR_LATEX: :width 0.8\linewidth
+    [[./figure/Figure1.pdf]]
+    \vspace{-0.3cm}
+    - Datastore: :: Datastore is constructed from parallel corpus by a single forward pass over each example.
+    - $q = f(x, \hat{y}_{1:i-1})$ : :: an intermediate representation of the decoder
+
+** Nearest Neighbor Machine Translation
+   \vspace{-0.2cm}
+    #+ATTR_LATEX: :width 0.75\linewidth
+    [[./figure/Figure1.pdf]]
+\metroset{block=fill}
+\renewcommand{\baselinestretch}{1.0}
+\small
+\vspace{-0.1cm}
+**** At test time
+     \setlength{\parskip}{0.1em}
+     1. Search $k$ nearest neighbors from the datastore based on distances between $q$ and each intermediate representation.  \setlength{\itemsep}{0em}
+     2. Compute the distribution by applying a softmax with temperature to each $k$ nearest neighbors.
+     3. Aggregate the 2. results and obtain probability $p_{kNN}(y_i)$ .
+     4. Interpolate the NMT and kNN distribution.
+        \vspace{-0.3cm}
+
+** Datastore creation
+*** Store the entire translation context, preliminarily
+    \begin{equation*}
+      (\highlight[orange]{$\mathcal{K}$},\highlight[mLightGreen]{$\mathcal{V}$}) = \{ (\highlight[orange]{$f(s, t_{1:i-1})$}, \highlight[mLightGreen]{$t_i$}), \forall t_i \in t \mid (s, t) \in (\mathcal{S}, \mathcal{T}) \} 
+    \end{equation*}
+    - $f$ : NMT model (returns the decoder's intermediate representations)
+    - $(\mathcal{S}, \mathcal{T})$ : parallel corpus
+    - @@latex:\highlight[orange]{ $\mathcal{K}$ : intermediate representations}, \highlight[mLightGreen]{ $\mathcal{V}$ : target tokens $t_i$}@@
+      - Conditioning on the source is implicit via the keys
+      - The values are only target language tokens
+
+** Generation
+ \small
+*** Compute distance-based probability distribution by applying a softmax with temperature
+    \begin{equation*}
+      \highlight[cyan]{$p_{kNN}(y_i | x, \hat{y}_{1:i-1})$} \propto \sum_{(k_j, v_j) \in \mathcal{N}} \mathbbm{1}_{y_i = v_j} \exp \left( \frac{ \highlight[orange]{$-d(k_j, f(x, \hat{y}_{1:i-1}))$} }{T} \right)
+    \end{equation*}
+    - $\hat{y}$ : generated tokens @@latex:\\@@
+    - $\mathcal{N}$ : $k$ nearest neighbors according to @@latex:squared-$L^2$@@ distance
+
+*** Interpolate with the NMT output distribution
+    # @@latex:\highlight[mLightGreen]{ $p_{MT}(y_i | x, \hat{y}_{1:i-1})$ }@@
+    \begin{equation*}
+      p(y_i | x, \hat{y}_{1:i-1}) = \lambda \highlightcap[cyan]{$p_{kNN}(y_i | x, \hat{y}_{1:i-1})$}{\footnotesize kNN distribution} + (1 - \lambda) \highlightcap[mLightGreen]{$p_{MT}(y_i | x, \hat{y}_{1:i-1})$}{\footnotesize NMT distribution}
+    \end{equation*}
+
+** Experimental Setup
+*** NMT Model
+    - Transformer big (\texttt{Fairseq})
+*** Tasks
+    - WMT19 De-En news translation
+    - Multilingual MT
+      - train: CCMatrix
+      - test: newstest2018, newstest2019, TED Talks
+    - Domain adaptation:
+      - Medical, Law, IT, Koran, Subtitles
+
+** Experimental Setup
+*** Implementation of kNN-MT
+    - kNN: \texttt{Faiss} (a library for fast k nearest neighbors search)
+    - Key: 1024-dimensional input to the final decoder layer FFN @@latex:\\@@ (quantized to 64-bytes)
+      - Multilingual MT:  131K clusters
+      - Domain adaptation:  4K clusters
+    - Inference: Query the datastore for 64 neighbors while searching 32 clusters 
+
+** Computational Cost
+   :PROPERTIES:
+   :BEAMER_OPT: t
+   :END:
+*** kNN-MT adds some computational overhead
+    \metroset{block=fill}
+**** 
+     :PROPERTIES:
+     :BEAMER_OPT: t
+     :BEAMER_COL: 0.5
+     :END:
+***** Datastore creation
+     :PROPERTIES:
+     :BEAMER_ENV: block
+     :END:
+     - A single forward pass over all examples
+       - Same as one epoch
+**** 
+     :PROPERTIES:
+     :BEAMER_OPT: t
+     :BEAMER_COL: 0.5
+     :END:
+***** Inference
+     :PROPERTIES:
+     :BEAMER_ENV: block
+     :END:
+     - Retrieving 64 keys from a datastore containing billions of items
+     - A generation speed that is two orders of magnitude slower than the base MT system
+
+** Experiments
+*** WMT'19 De-En
+    #+ATTR_LATEX: :booktabs t
+    |----------+-----------------------|
+    | Model    | BLEU (%)              |
+    |----------+-----------------------|
+    | Baseline | 37.59                 |
+    | +kNN-MT  | \textbf{39.08 (+1.5)} |
+    |----------+-----------------------|
+
+    - Improving by 1.5 BLEU % w/o additional training
+
+** Multilingual Machine Translation
+*** Retrieving neighbors from same source language data
+    #+ATTR_LATEX: :width \linewidth
+    [[./figure/Table1.pdf]]
+
+** Multilingual Machine Translation
+*** Retrieving neighbors using English as the source language
+    #+ATTR_LATEX: :width \linewidth
+    [[./figure/Table2.pdf]]
+
+** Domain Adaptation
+*** Domain-specific, out-of-domain, and multi-domain datastores
+    #+ATTR_LATEX: :width \linewidth
+    [[./figure/Table3.pdf]]
+
+** Tuning kNN-MT (on validation set)
+*** # of neighbors per query $k$
+    - $k = 64$ (the # of neighbors retrieved per query)
+    - \textit{``we find that performance does not improve when retrieving a larger number of neighbors, and in some cases, performance deteriorates.''} (noise?)
+
+*** Softmax temperature $T$
+**** 
+     :PROPERTIES:
+     :BEAMER_COL: 0.5
+     :END:
+     - $T$ greater than 1 will
+       - flatten the distribution
+       - increase diversity
+**** 
+     :PROPERTIES:
+     :BEAMER_COL: 0.4
+     :END:
+     \begin{textblock*}{\linewidth}(220pt, 125pt)
+      \includegraphics[width=\linewidth]{./figure/Figure2.pdf}
+     \end{textblock*}
+     
+
+** Tuning kNN-MT (on validation set)
+*** Datastore size
+    #+ATTR_LATEX: :width 0.5\linewidth
+    [[./figure/Figure3.pdf]]
+
+** Qualitative Analysis
+\vspace{-0.2cm}
+*** Generate w/ only the kNN distribution ( $\lambda = 1$ )
+    \vspace{-0.5cm}
+    #+ATTR_LATEX: :width 0.5\linewidth
+    [[./figure/Figure4.pdf]]
+
+* Related Work
+** Example-Based Machine Translation (EBMT)
+*** \small A Framework of a mechanical translation between Japanese and English by analogy principle \mycite{nagao-1984-framework}
+    - e.g. English-to-Japanese bilingual corpus
+      #+ATTR_LATEX: :booktabs t :font \footnotesize
+      |---------------------------------------------------+---------------------------------------------------------|
+      | English                                           | Japanese                                                |
+      |---------------------------------------------------+---------------------------------------------------------|
+      | Chick Corea is a fantastic \textbf{jazz pianist}. | チックコリアは素晴らしい\textbf{ジャズピアニスト}です。 |
+      | Chick Corea is a fantastic \textbf{composer}.     | チックコリアは素晴らしい\textbf{作曲家}です。           |
+      |---------------------------------------------------+---------------------------------------------------------|
+      \vspace{1em} EBMT system learns three units from the above example:
+        1. @@latex:``\textit{Chick Corea is a fantastic $\mathcal{X}$.}'' → ``\textit{チックコリアは素晴らしい $\mathcal{X}$ です。}''@@
+        2. @@latex:``\textit{jazz pianist}'' → ``\textit{ジャズピアニスト}''@@
+        3. @@latex:``\textit{composer}'' → ``\textit{作曲家 }''@@
+
+
+** Incorporating retrieval mechanisms into NMT
+*** \small Guiding Neural Machine Translation with Retrieved Translation Pieces \mycite{zhang-etal-2018-guiding}
+    \vspace{-0.3cm}
+    #+ATTR_LATEX: :width 0.8\linewidth
+    [[./figure/zhang-etal-2018-guiding/Figure1.pdf]]
+
+**** 
+     :PROPERTIES:
+     :BEAMER_COL: 0.6
+     :END:
+     \vspace{-1cm}
+     - Retrieve translation pieces (n-gram) of word-aligned parallel corpus
+     - Add rewards for n-grams that occur in the collected translation pieces
+**** 
+     :PROPERTIES:
+     :BEAMER_COL: 0.4
+     :END:
+     \vspace{-0.6cm}
+     #+ATTR_LATEX: :width \linewidth
+     [[./figure/zhang-etal-2018-guiding/Figure2.pdf]]
+
+** Retrieving translation examples
+*** \small Search Engine Guided Neural Machine Translation \mycite{gu-etal-2018-search}
+    - Retrieve examples similar to the test source sentence
+    - Incorporate retrieved information w/ \textit{deep fusion / shallow fusion}
+
+    \vspace{-0.6cm}
+    #+ATTR_LATEX: :width 0.75\linewidth
+    [[./figure/gu-etal-2018-search/Figure1.pdf]]
+
+** Augumenting source sequences with retrieved translations
+\vspace{-0.3cm}
+*** \footnotesize Neural Fuzzy Repair: Integrating Fuzzy Matches into Neural Machine Translation \mycite{bulte-tezcan-2019-neural}
+\vspace{-0.1cm}
+    - Retrieve from translation memories by using edit distance based fuzzy-matching
+    - Augment source sequences with retrieved translations
+      - e.g. ``\textit{こんにちは}'' → ``\textit{こんにちは || hi || good evening || have a nice day}''
+        - || : break token
+
+\vspace{-0.3cm}
+*** \small Boosting Neural Machine Translation with Similar Translations \mycite{xu-etal-2020-boosting}
+\vspace{-0.1cm}
+    - Improvement of ``Neural Fuzzy Repair'' \mycite{bulte-tezcan-2019-neural}
+      - New score functions
+        - N-gram matching score
+        - Embedding-based score
+      - Additional information
+        - source tag, related target tag, un-related target tag, etc.
+
+** \small Learning to Remember Translation History with a Continuous Cache \mycite{tu-etal-2018-learning}
+*** Saving and retrieving translation histories
+    - Proposed model awares cross-sentence context in documents to prevent translation inconsistency.
+
+    #+ATTR_LATEX: :width 0.7\linewidth
+    [[./figure/tu-etal-2018-learning/Figure2.pdf]]
+
+** Conclusion
+*** Summary
+    - kNN-MT can apply to any NMT model w/o further training.
+    - Similar contexts in a model's embedding space are more likely to be followed by similar next words, allowing the model to be improved by interpolation w/ kNN classifier.
+    - kNN-MT improves a SOTA model in-domain, leads to large gains out-of-domain, and can specialize a multilingual model for specific language-pairs.
+
+\vspace{-0.3cm}
+*** Future work
+    - Improving efficiency
+      - e.g. Down-sampling frequent target words in the datastore
