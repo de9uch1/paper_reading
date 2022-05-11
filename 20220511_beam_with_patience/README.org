@@ -1,0 +1,244 @@
+# Copyright (c) Hiroyuki Deguchi.
+#
+# This source code is licensed under the MIT license found in the
+# LICENSE file in the root directory of this source tree.
+
+#+TITLE: Beam Decoding with Controlled Patience
+#+SUBTITLE: (Kasai et al., 2022)
+#+AUTHOR: @@latex:\mbox{\lower2.0pt\hbox{\materials}}~ Hiroyuki Deguchi \\ \mbox{\lower2.0pt\hbox{\materials}}~ \texttt{deguchi.hiroyuki.db0@is.naist.jp} \\ \raise0.5pt\hbox{\octicons}~ \url{https://arxiv.org/abs/2204.05424} \\ \raise0.5pt\hbox{\octicons}~ \url{https://github.com/jungokasai/beam_with_patience}@@
+#+DATE: @@latex:\mbox{\lower2.0pt\hbox{\materials}}~ 2022/05/11 NAIST MT study group@@
+#+BEAMER_HEADER: \institute{}
+#+STARTUP: beamer
+#+LATEX_CLASS: beamer
+#+LATEX_CLASS_OPTIONS: [t, unicode, 12pt, xdvipdfmx, aspectratio=169, bxjsarticle]
+#+OPTIONS: H:1 toc:nil
+
+#+LATEX_HEADER: \usepackage[backend=bibtex, style=authoryear, maxcitenames=2]{biblatex}
+# #+LATEX_HEADER: \AtEveryCitekey{\iffootnote{\tiny\reffont}{\color{blue}}}
+#+LATEX_HEADER: \addbibresource{../resources/anthology.bib}
+#+LATEX_HEADER: \addbibresource{../resources/my.bib}
+#+LATEX_HEADER: \let\oldcite\cite
+#+LATEX_HEADER: \renewcommand{\cite}[1]{{\scriptsize\reffont{(\oldcite{#1})}}}
+#+LATEX_HEADER: \newcommand{\citet}[2][\footnotesize]{{\reffont#1\citeauthor*{#2} (\citeyear{#2})}}
+#+LATEX_HEADER: \newcommand{\mycite}[1]{{\scriptsize\reffont({\citeauthor*{#1}, \citeyear{#1}})}}
+#+LATEX_HEADER: \newcommand{\myfootcite}[1]{\footnote{\tiny\reffont\citetitle{#1}, \citeauthor*{#1}, \citeyear{#1}.}}
+#+LATEX_HEADER: \usepackage{hyperref}
+
+# #+LATEX_HEADER: \usetheme[numbering=fraction]{metropolis}
+#+LATEX_HEADER: \usetheme{metropolis}
+#+LATEX_HEADER: \setbeamertemplate{items}[default]
+#+LATEX_HEADER: \setbeamertemplate{itemize item}{\small\raise0.5pt\hbox{$\blacksquare$}}
+#+LATEX_HEADER: \setbeamertemplate{itemize subitem}{\footnotesize\raise1.5pt\hbox{$\bullet$}}
+#+LATEX_HEADER: \setbeamertemplate{itemize subsubitem}{\scriptsize\raise1.5pt\hbox{$\blacktriangleright$}}
+#+LATEX_HEADER: \setbeamertemplate{enumerate item}{\textbf{\arabic{enumi}.}}
+#+LATEX_HEADER: \addtolength{\skip\footins}{6pc plus 10pt}
+#+LATEX_HEADER: \usepackage{xltxtra}
+
+#+LATEX_HEADER: \usepackage{booktabs}
+#+LATEX_HEADER: \usepackage[absolute,overlay]{textpos}
+
+#+LATEX_HEADER: \usepackage{pgfpages}
+# #+LATEX_HEADER: \setbeameroption{show notes on second screen=right}
+
+#+LATEX_HEADER: \usepackage{tikz}
+#+LATEX_HEADER: \usepackage{tikz-dependency}
+#+LATEX_HEADER: \usetikzlibrary{arrows.meta, matrix, positioning, fit, calc, backgrounds, shapes.callouts}
+#+LATEX_HEADER: \usepackage{pgfgantt}
+#+LATEX_HEADER: \usepackage{adjustbox}
+#+LATEX_HEADER: \usepackage{array}
+#+LATEX_HEADER: \usepackage[linguistics]{forest}
+
+#+LATEX_HEADER: \newcommand{\highlightcap}[3][blue]{\tikz[baseline=(x.base)]{\node[rectangle,rounded corners,fill=#1!20](x){#2} node[below=0.5ex of x, color=#1]{#3};}}
+#+LATEX_HEADER: \newcommand{\highlight}[2][blue]{\tikz[baseline=(x.base)]{\node[rectangle,rounded corners,fill=#1!20](x){#2};}}
+#+LATEX_HEADER: \newcommand{\calloutbase}[2]{\tikz[remember picture, baseline=(#1.base)]{\node(#1) {#2};}}
+#+LATEX_HEADER: \newcommand{\calloutpos}[2]{\tikz[remember picture, overlay]{\node[below=0cm of #1] {#2};}}
+#+LATEX_HEADER: \newcommand{\calloutbelow}[3][blue]{\tikz[remember picture, overlay]{\node[rectangle callout, rounded corners, fill=#1!10, callout absolute pointer={(#2.south)}, below=of #2] {#3};}}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LATEX_HEADER: \definecolor{myalert}{HTML}{AD003D}
+#+LATEX_HEADER: \definecolor{mDarkTeal}{HTML}{23373b}
+#+LATEX_HEADER: \definecolor{mLightGreen}{HTML}{14B03D}
+#+LATEX_HEADER: \usepackage{ulem}
+
+#+LATEX_HEADER: \usefonttheme{professionalfonts}
+#+LATEX_HEADER: \usepackage[T1]{fontenc}
+#+LATEX_HEADER: \usepackage{fontspec}
+# #+LATEX_HEADER: \XeTeXlinebreaklocale "ja"
+# #+LATEX_HEADER: \usepackage{xeCJK}
+# #+LATEX_HEADER: \setsansfont[AutoFakeSlant=0.2]{Noto Sans CJK JP}
+#+LATEX_HEADER: \setsansfont[BoldFont={Fira Sans Bold}]{Fira Sans Book}
+# #+LATEX_HEADER: \setCJKmainfont[AutoFakeSlant=0.2]{Noto Sans CJK JP}
+# #+LATEX_HEADER: \setCJKsansfont{Noto Sans CJK JP}
+# #+LATEX_HEADER: \setCJKromanfont{Noto Serif CJK JP}
+# #+LATEX_HEADER: \xeCJKDeclareCharClass{CJK}{`※}
+# #+LATEX_HEADER: \setromanfont[AutoFakeSlant=0.2]{Noto Serif CJK JP}
+#+LATEX_HEADER: \newfontfamily\firasans{Fira Sans}
+# #+LATEX_HEADER: \newfontfamily\emojifont{Noto Color Emoji}
+#+LATEX_HEADER: \newfontfamily\cica{Cica}
+#+LATEX_HEADER: \newfontfamily\octicons{octicons}
+#+LATEX_HEADER: \newfontfamily\materials{Material Icons}
+#+LATEX_HEADER: \newfontfamily\faicons{FontAwesome}
+#+LATEX_HEADER: \newfontfamily\reffont{Times New Roman}
+
+# #+LATEX_HEADER: \usepackage{amsfonts}
+#+LATEX_HEADER: \usepackage{amssymb}
+#+LATEX_HEADER: \usepackage{mathfont}
+#+LATEX_HEADER: \usepackage{bbm}
+# #+LATEX_HEADER: \usepackage{amslatex}
+# #+LATEX_HEADER: \usepackage{minted}
+
+#+LATEX_HEADER: \renewcommand{\baselinestretch}{1.2}
+#+LATEX_HEADER: \setbeamersize{text margin left=6mm}
+#+LATEX_HEADER: \setbeamersize{text margin right=6mm}
+
+* Introduction
+** Beam search is widely used, but the implementation has variations.
+*** 
+    :PROPERTIES:
+    :BEAMER_COL: 0.5
+    :END:
+    - \textbf{Vanilla}: TensorFlow Addons library
+    - @@latex:\textbf{\textit{first come, first served; FCFS}}@@: fairseq, Transformers
+      - This paper proposes a @@latex:\textbf{\textit{patience factor}}@@ on FCFS beam search.
+
+*** 
+    :PROPERTIES:
+    :BEAMER_COL: 0.5
+    :END:
+    #+ATTR_LATEX: :width 1.0\linewidth
+    [[./figure/contrast_fig.pdf]]
+
+    \footnotesize \textbf{Vanilla vs. FCFS with patience factor $p$}: \\
+    $k$ denotes the beam size. FCFS stores finished sentences in $F$, but they stay in (and later may fall off from) beam $B$ during vanilla decoding.
+
+* Vanilla Beam Decoding
+\vspace{-0.2cm}
+** @@latex:The top-$k$ operation is applied over all sequences.@@
+*** 
+    :PROPERTIES:
+    :BEAMER_COL: 0.5
+    :END:
+    - Find the top-$k$ sequences, including both finished and unfinished sequences: \colorbox{red!15}{Line 5}
+    - Decode until all top-$k$ sequences are finished: \colorbox{green!25}{Line 13}
+      - It tends to result in deeper search.
+
+*** 
+    :PROPERTIES:
+    :BEAMER_COL: 0.5
+    :END:
+    #+ATTR_LATEX: :width 0.95\linewidth
+    [[./figure/vanilla.pdf]]
+
+* First Come, First Served (FCFS)
+\vspace{-0.2cm}
+** @@latex:The top-$k$ operation is applied over unfinished sequences.@@
+*** 
+    :PROPERTIES:
+    :BEAMER_COL: 0.5
+    :END:
+    - Collect finished sequences in a \textit{first come, first served} manner and removes them from the beam: Line 11
+    - FCFS has a wider breadth since it collects $k$ unfinished sequences at every step regardless of how many sequences are finished with the EOS symbol.
+      - Terminate when a total of $k$ finished sequences is found.
+
+*** 
+    :PROPERTIES:
+    :BEAMER_COL: 0.5
+    :END:
+    \vspace{-0.3cm}
+    #+ATTR_LATEX: :width 0.95\linewidth
+    [[./figure/FCFS.pdf]]
+
+* Patience Factor for FCFS
+\vspace{-0.2cm}
+** @@latex:Separate the stopping criterion from the search breadth.@@
+*** 
+    :PROPERTIES:
+    :BEAMER_COL: 0.5
+    :END:
+    - Beam size $k$ in FCFS controls both the breadth and stopping criterion (i.e., depth) of search.
+    - Proposed \textbf{patience factor} relaxes this assumption: \colorbox{green!25}{Line 13}
+      - It can be implemented by the one-line modification.
+
+*** 
+    :PROPERTIES:
+    :BEAMER_COL: 0.5
+    :END:
+    \vspace{-0.3cm}
+    #+ATTR_LATEX: :width 0.95\linewidth
+    [[./figure/FCFS.pdf]]
+
+* Main Results
+  \vspace{-0.3cm}
+  - patience factor: $p = 2$ for MT, $p = 0.5$ for summarization
+  - metric: COMET (XLM-RoBERTa) for MT, ROUGE for summarization
+  \vspace{-0.1cm}
+  #+ATTR_LATEX: :width 0.9\linewidth
+  [[./figure/main_results.pdf]]
+  \vspace{-0.2cm}
+  - In summarization, \textit{vanilla} decoding performs worse than \textit{greedy}.
+    - It might be a reason why \textit{FCFS} is used instead of \textit{vanilla} in popular libraries.
+
+* Evaluate Translation by BLEU
+  - patience factor: $p=2$
+  - metric: BLEU
+  #+ATTR_LATEX: :width 0.75\linewidth
+  [[./figure/mt_bleu.pdf]]
+  
+  - In many cases, \textit{FCFS w/$p$} slightly better than \textit{FCFS}.
+
+* Analysis: Effects of varying patience factors $p$
+  #+ATTR_LATEX: :width 0.8\linewidth
+  [[./figure/varying_p.pdf]]
+
+  - The translation performance improves with larger patience factors with diminishing gains.
+  - Summarization benefits more from patience factors smaller than the original value of 1.
+    - The nature of the summarization task that aims to generate concise text.
+
+* Analysis: Effects of controlled patience over varying beam sizes
+  #+ATTR_LATEX: :width 0.65\linewidth
+  [[./figure/varying_beam.pdf]]
+
+  \vspace{-0.3cm}
+  - The amount of improvement changes, but the patience factor is generally beneficial.
+
+* \normalsize Analysis: Effects of controlled patience over varying length penalty
+  #+ATTR_LATEX: :width 0.65\linewidth
+  [[./figure/varying_lenpen.pdf]]
+
+  \vspace{-0.3cm}
+  - The amount of improvement changes, but the patience factor is generally beneficial.
+
+* [BTW] Length Penalty
+  - Length-normalized log probability:
+    \begin{equation*}
+        \frac{\log (P(Y|X))}{\mathrm{lenpen}(Y)}
+    \end{equation*}
+
+    - Google NMT: $\mathrm{lenpen}(Y) = \left(\frac{5 + |Y|}{5 + 1}\right)^\alpha$, $\alpha = 0.6$
+    - Fairseq: $\mathrm{lenpen}(Y) = |Y|^\alpha$, $\alpha = 1.0$
+      - This paper uses the fairseq version's length penalty.
+
+
+* Related Work
+** Stopping Criterion for Beam Decoding
+  - Optimal Beam Search (Huang et al., EMNLP 2017)\myfootcite{huang-etal-2017-finish}
+    - They propose a method to optimally finish beam search.
+    - Modify the beam decoding procedure
+
+** Breadth of Beam Decoding
+   - Analyzing effects of the search breadth (Ott et al., ICML 2018)\myfootcite{ott-etal-2018-analyzing}
+
+* Conclusion
+** 
+    :PROPERTIES:
+    :BEAMER_COL: 0.6
+    :END:
+    - This paper named two major beam search implementation, vanilla and FCFS.
+    - This paper proposed \textbf{patience factor} for FCFS, controls the stopping criterion.
+    - Experiments shows that the proposed FCFS w/patience gains better translation/summarization performance than FCFS.
+
+** 
+    :PROPERTIES:
+    :BEAMER_COL: 0.4
+    :END:
+    #+ATTR_LATEX: :width 1.0\linewidth
+    [[./figure/contrast_fig.pdf]]

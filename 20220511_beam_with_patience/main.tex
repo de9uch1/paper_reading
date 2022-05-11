@@ -1,0 +1,246 @@
+\pdfoutput=1
+
+\documentclass[11pt]{article}
+
+\usepackage{acl}
+
+\usepackage{times}
+\usepackage{latexsym}
+
+\usepackage[T1]{fontenc}
+
+\usepackage[utf8]{inputenc}
+
+\usepackage[T1]{fontenc}    %
+\usepackage{hyperref}       %
+\usepackage{url}            %
+\usepackage{booktabs}       %
+\usepackage{amsfonts}       %
+\usepackage{nicefrac}       %
+\usepackage{microtype}      %
+\usepackage{xcolor}         %
+\usepackage{standalone}
+\usepackage{latexsym}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{array}
+\usepackage{tabu}
+\usepackage{makecell}
+\usepackage{paralist}
+\usepackage{cases}
+\usepackage{diagbox}
+\usepackage{enumitem}
+\usepackage{soul}
+\usepackage{multirow}
+\usepackage{verbatim}
+\usepackage{tabulary}
+\usepackage{booktabs}
+\usepackage[mathscr]{euscript}
+\usepackage{mathtools}
+\usepackage{algorithm}
+\usepackage{colortbl}
+\usepackage{tabstackengine}
+\usepackage{tikz}
+\usepackage{relsize}
+\usepackage{microtype}
+\usepackage{tablefootnote}
+\usepackage{silence}
+
+
+
+\usepackage[noend]{algpseudocode}
+\algnewcommand{\parState}[1]{\State%
+    \parbox[t]{\dimexpr\linewidth-\algmargin}{\strut\hangindent=\algorithmicindent \hangafter=1 #1\strut}}
+
+\algrenewcommand\algorithmicindent{1.0em}%
+\renewcommand\algorithmicdo{:}
+\renewcommand\algorithmicthen{:}
+
+
+
+\usepackage{stmaryrd}
+\usepackage{tikz-dependency}
+\usetikzlibrary{automata,decorations.markings,arrows,positioning,matrix,calc,patterns,angles,quotes,calc}
+\usepackage{adjustbox}
+\usepackage{tabularx}
+\usepackage{xspace}
+\usepackage{tabulary}
+\usepackage{afterpage}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{bm}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{slashbox}
+\usepackage[toc,page]{appendix}
+\usepackage{makecell}
+\usepackage{boldline}
+
+\definecolor{orange}{rgb}{1,0.5,0}
+\definecolor{mdgreen}{rgb}{0.05,0.6,0.05}
+\definecolor{mdblue}{rgb}{0,0,0.7}
+\definecolor{dkblue}{rgb}{0,0,0.5}
+\definecolor{dkgray}{rgb}{0.3,0.3,0.3}
+\definecolor{slate}{rgb}{0.25,0.25,0.4}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{ltgray}{rgb}{0.7,0.7,0.7}
+\definecolor{purple}{rgb}{0.7,0,1.0}
+\definecolor{lavender}{rgb}{0.65,0.55,1.0}
+
+
+\definecolor{mypurple}{RGB}{111,61,121}
+\definecolor{myblue}{RGB}{46,88,180}
+\definecolor{myred}{RGB}{181,68,106}
+\definecolor{myyellow}{RGB}{204,143,55}
+\definecolor{mygray}{RGB}{128,128,128}
+\definecolor{mygreen}{RGB}{126,198,54}
+
+\newcommand{\ensuretext}[1]{#1}
+\newcommand{\marker}[2]{\ensuremath{^{\textsc{#1}}_{\textsc{#2}}}}
+\newcommand{\arkcomment}[3]{\ensuretext{\textcolor{#3}{[#1 #2]}}}
+
+\newcommand{\nascomment}[1]{\arkcomment{\marker{NA}{S}}{#1}{blue}}
+\newcommand{\lingpeng}[1]{\arkcomment{\marker{L}{K}}{#1}{red}}
+\newcommand{\nikos}[1]{\arkcomment{\marker{N}{P}}{#1}{mdgreen}}
+\newcommand{\dani}[1]{\arkcomment{\marker{D}{Y}}{#1}{cyan}}
+\newcommand{\roy}[1]{\arkcomment{\marker{R}{S}}{#1}{orange}}
+\newcommand{\hao}[1]{\arkcomment{\marker{H}{P}}{#1}{purple}}
+\newcommand{\jungo}[1]{\arkcomment{\marker{J}{K}}{#1}{brown}}
+\newcommand{\ronan}[1]{\arkcomment{\marker{R}{L}}{#1}{teal}}
+\newcommand{\zfw}[1]{\arkcomment{\marker{Z}{W}}{#1}{lavender}}
+
+\newcommand{\revcolor}{red}
+\newcommand{\rev}[1]{{#1}}
+
+\newcommand{\term}[1]{\textbf{#1}} %
+\newcommand{\tabincell}[2]{\begin{tabular}{@{}#1@{}}#2\end{tabular}}
+\newcommand{\interalia}[1]{\citep[\emph{inter alia}]{#1}}
+
+\newcommand{\argmaxinline}[1]{\operatorname{argmax}_{#1}}
+\newcommand{\argmininline}[1]{\operatorname{argmin}_{#1}}
+\newcommand{\argmaxname}{\operatorname{argmax}}
+\newcommand{\argminname}{\operatorname{argmin}}
+\newcommand{\relu}{\operatorname{ReLU}}
+
+\newcommand{\rulesep}{\unskip\ \vrule\ }
+
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+\DeclareSymbolFont{extraup}{U}{zavm}{m}{n}
+\DeclareMathSymbol{\vardiamond}{\mathalpha}{extraup}{87}
+
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand*{\QEDA}{\hfill\ensuremath{\blacksquare}}
+\newcommand*{\QEDB}{\hfill\ensuremath{\square}}
+\algrenewcommand{\algorithmiccomment}[1]{\leavevmode$\triangleright$ #1}
+\newcommand{\pd}[2]{\frac{\partial #1}{\partial #2}}
+\setul{1pt}{.4pt}
+
+\usepackage[shortcuts]{extdash}  %
+
+\usepackage{blindtext}
+\usepackage{graphicx}
+\usepackage{capt-of}
+\usepackage{booktabs}
+\usepackage{varwidth}
+\newsavebox\tmpbox
+\input{math_commands.tex}
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+\newcommand{\model}{\textsc{Abc}\xspace}
+\newcommand{\modelmlp}{\textsc{Abc}$_\text{MLP}$\xspace}
+\newcommand{\modelexp}{\textsc{Abc}$_{\exp}$\xspace}
+\newcommand{\modelrandom}{\textsc{Abc}$_{\text{RD}}$\xspace}
+\newcommand{\modelwindow}{\textsc{Abc}$_{\text{WD}}$\xspace}
+\newcommand{\modelcluster}{\textsc{Abc}$_{\text{CL}}$\xspace}
+\newcommand{\STAB}[1]{\begin{tabular}{@{}c@{}}#1\end{tabular}}
+\newcommand{\resolved}[1]{}
+\newcommand{\base}[0]{\textsc{Base}\xspace}
+
+\newcommand{\com}[1]{}
+
+
+
+\newcommand{\bos}{\textsc{bos}\xspace}
+\newcommand{\eos}{\textsc{eos}\xspace}
+\newcommand{\nmax}{n_{\textit{max}}}
+\newcommand{\score}{\mathrm{score}}
+\newcommand{\scorestwos}{\score_{\textit{s2s}}}
+\newcommand{\vocab}{\mathcal{V}}
+
+
+\usepackage{algorithm}
+\usepackage{colortbl}
+\usepackage{tabstackengine}
+\usepackage{tikz}
+\usepackage{relsize}
+\usepackage{microtype}
+
+
+
+\title{Beam Decoding with Controlled Patience}
+
+
+\usepackage{microtype}
+
+
+
+\author{
+    Jungo Kasai$^{\heartsuit\clubsuit}$
+\quad
+\textbf{Keisuke Sakaguchi}$^{\clubsuit}$
+\quad
+\textbf{Ronan Le Bras}$^{\clubsuit}$
+\\
+\textbf{Dragomir Radev}$^{\spadesuit}$
+\quad
+\textbf{Yejin Choi}$^{\heartsuit\clubsuit}$
+\quad
+\textbf{Noah A.\ Smith}$^{\heartsuit\clubsuit}$\\ 
+\\
+$^{\heartsuit}$Paul G.\ Allen School of Computer Science \& Engineering, University of Washington
+    \\
+     $^{\clubsuit}$Allen Institute for AI  \quad 
+     $^{\spadesuit}$Department of Computer Science, Yale University\\
+    {\tt \{jkasai,yejin,nasmith\}@cs.washington.edu}\\
+    {\tt \{keisukes,ronanlb\}@allenai.org} \quad {\tt dragomir.radev@yale.edu}
+}
+
+
+
+
+\begin{document}
+
+\maketitle
+
+\setlength{\abovedisplayskip}{2pt}
+\setlength{\belowdisplayskip}{2pt}
+\input{text/abstract}
+\input{text/intro}
+\input{text/beam}
+\input{text/experiments}
+\input{text/related}
+\input{text/conclusion}
+
+\bibliography{acl}
+
+\clearpage
+\appendix
+\input{text/appendix}
+ 
+\end{document}
